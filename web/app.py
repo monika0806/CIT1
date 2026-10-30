@@ -16,6 +16,7 @@ from core.pipeline import MasterTrafficPipeline
 from core.map_simulator import sit_simulator
 from core.parking_analyzer import narrow_street_analyzer
 from core.safety_analyzer import women_safety_analyzer
+from core.green_corridor import GreenCorridorEngine
 from database.db import (
     get_recent_violations, get_statistics, get_challan_details,
     search_challans, pay_challan, get_connection, log_sos_dispatch,
@@ -47,6 +48,7 @@ def add_cors_headers(response):
 
 # Global Master Pipeline Instance configured for two-way divided traffic flow
 pipeline = MasterTrafficPipeline(expected_direction="bidirectional_split")
+green_corridor_engine = GreenCorridorEngine(sit_simulator)
 
 # Video stream state
 video_source_path = os.path.join(SAMPLE_FOLDER, "traffic.mp4")
@@ -457,6 +459,51 @@ def api_routes_plan():
         
     result = sit_simulator.find_smart_routes(origin, destination)
     return jsonify(result)
+
+# -------------------------------------------------------------
+# AI Emergency Green Vehicle Corridor Endpoints
+# -------------------------------------------------------------
+@app.route("/api/emergency/locations", methods=["GET"])
+@app.route("/api/emergency/nodes", methods=["GET"])
+def api_emergency_locations():
+    """Returns hospitals, trauma centers, fire stations, and city junctions with live congestion."""
+    return jsonify(green_corridor_engine.get_all_locations())
+
+@app.route("/api/emergency/corridor", methods=["GET", "POST"])
+def api_emergency_corridor():
+    """
+    AI Emergency Green Wave Corridor Generator.
+    Computes primary recommended route and contingency alternative route with detailed AI reasons
+    factoring in live traffic congestion, traffic volume, travel times, and intersection bottlenecks.
+    """
+    if request.method == "POST":
+        data = request.json or {}
+        origin = data.get("origin") or data.get("from") or "HOSP-04"
+        destination = data.get("destination") or data.get("to") or "HOSP-01"
+        vehicle_type = data.get("vehicle_type", "AMBULANCE")
+        priority = data.get("priority", "CODE_RED")
+    else:
+        origin = request.args.get("origin") or request.args.get("from") or "HOSP-04"
+        destination = request.args.get("destination") or request.args.get("to") or "HOSP-01"
+        vehicle_type = request.args.get("vehicle_type", "AMBULANCE")
+        priority = request.args.get("priority", "CODE_RED")
+
+    result = green_corridor_engine.plan_green_corridor(
+        origin_id=origin,
+        dest_id=destination,
+        vehicle_type=vehicle_type,
+        priority=priority
+    )
+    return jsonify(result)
+
+@app.route("/api/emergency/preempt-signals", methods=["POST"])
+def api_emergency_preempt_signals():
+    """Activates automated green wave signal preemption along the emergency corridor."""
+    data = request.json or {}
+    corridor_id = data.get("corridor_id")
+    signal_ids = data.get("signal_ids")
+    res = green_corridor_engine.activate_signal_preemption(corridor_id, signal_ids)
+    return jsonify(res)
 
 @app.route("/api/camera/location", methods=["GET", "POST"])
 def api_camera_location():

@@ -7,6 +7,7 @@ import HeatmapPage from './pages/HeatmapPage';
 import RoutePlannerPage from './pages/RoutePlannerPage';
 import NarrowStreetParkingPage from './pages/NarrowStreetParkingPage';
 import WomenSafetyPage from './pages/WomenSafetyPage';
+import GreenCorridorPage from './pages/GreenCorridorPage';
 import OfficerPortalPage from './pages/OfficerPortalPage';
 import CitizenPortalPage from './pages/CitizenPortalPage';
 
@@ -28,6 +29,9 @@ export default function App() {
           <Route path="/live" element={<LiveSurveillancePage />} />
           <Route path="/map" element={<HeatmapPage />} />
           <Route path="/routes" element={<RoutePlannerPage />} />
+          <Route path="/corridor" element={<GreenCorridorPage />} />
+          <Route path="/green-corridor" element={<GreenCorridorPage />} />
+          <Route path="/emergency" element={<GreenCorridorPage />} />
           <Route path="/parking" element={<NarrowStreetParkingPage />} />
           <Route path="/safety" element={<WomenSafetyPage />} />
           <Route path="/officer" element={<OfficerPortalPage />} />

@@ -1,0 +1,895 @@
+/* ==========================================================================
+   ROADPULSE AI - GREEN VEHICLE CORRIDOR ENGINE STYLES
+   Cyberpunk aesthetics, glassmorphic HUD, neon emerald & cyan accents
+   ========================================================================== */
+
+.green-corridor-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  padding: 1.25rem 2rem 3rem;
+  max-width: 1720px;
+  margin: 0 auto;
+  min-height: calc(100vh - 75px);
+  box-sizing: border-box;
+}
+
+/* -------------------------------------------------------------
+   1. Header Section
+   ------------------------------------------------------------- */
+.corridor-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: 1.25rem 1.75rem;
+  box-shadow: var(--shadow-sm);
+  position: relative;
+  overflow: hidden;
+}
+
+.corridor-header::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, #10b981 0%, #00f5ff 50%, #10b981 100%);
+}
+
+.status-badge-glow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: rgba(239, 68, 68, 0.15);
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  padding: 0.3rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: #ef4444;
+  margin-bottom: 0.4rem;
+}
+
+.live-pulse.red {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #ef4444;
+  box-shadow: 0 0 10px #ef4444;
+  animation: beaconPulse 1s infinite alternate;
+}
+
+@keyframes beaconPulse {
+  from { opacity: 0.4; transform: scale(0.9); }
+  to { opacity: 1; transform: scale(1.3); }
+}
+
+.header-titles h2 {
+  margin: 0;
+  font-size: 1.45rem;
+  font-weight: 900;
+  color: var(--text-pure);
+  letter-spacing: -0.02em;
+}
+
+.header-titles p {
+  margin: 0.35rem 0 0;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  max-width: 800px;
+  line-height: 1.4;
+}
+
+.header-telemetry-chips {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.telemetry-pill {
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 0.5rem 0.9rem;
+  display: flex;
+  flex-direction: column;
+  min-width: 120px;
+}
+
+.pill-lbl {
+  font-size: 0.62rem;
+  font-weight: 800;
+  color: var(--text-muted);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.pill-val {
+  font-size: 1rem;
+  font-weight: 900;
+  color: var(--text-pure);
+  font-family: var(--font-mono);
+  margin-top: 2px;
+}
+
+.pill-val.green {
+  color: #10b981;
+}
+
+/* -------------------------------------------------------------
+   2. Dispatch Control Deck
+   ------------------------------------------------------------- */
+.dispatch-control-deck {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: 1.25rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.selectors-grid {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.85rem;
+  flex-wrap: wrap;
+}
+
+.input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  flex: 1;
+  min-width: 220px;
+}
+
+.input-group.small {
+  flex: 0.8;
+  min-width: 170px;
+}
+
+.input-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.indicator-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.indicator-dot.origin {
+  background: #ef4444;
+  box-shadow: 0 0 8px #ef4444;
+}
+
+.indicator-dot.destination {
+  background: #10b981;
+  box-shadow: 0 0 8px #10b981;
+}
+
+.corridor-select {
+  background: rgba(0, 0, 0, 0.45);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-pure);
+  border-radius: var(--radius-md);
+  padding: 0.65rem 0.85rem;
+  font-family: inherit;
+  font-size: 0.82rem;
+  font-weight: 600;
+  outline: none;
+  transition: all var(--transition-fast);
+  cursor: pointer;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.corridor-select:focus {
+  border-color: #10b981;
+  box-shadow: 0 0 12px rgba(16, 185, 129, 0.25);
+}
+
+.corridor-select optgroup {
+  background: #111827;
+  color: #10b981;
+  font-weight: 800;
+}
+
+.corridor-select option {
+  background: #1e293b;
+  color: #f8fafc;
+  font-weight: 500;
+}
+
+.btn-swap {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-primary);
+  width: 38px;
+  height: 38px;
+  border-radius: var(--radius-md);
+  font-size: 1.1rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--transition-fast);
+  margin-bottom: 2px;
+}
+
+.btn-swap:hover {
+  background: rgba(16, 185, 129, 0.2);
+  border-color: #10b981;
+  color: #10b981;
+}
+
+.btn-plan-corridor {
+  background: linear-gradient(135deg, #059669 0%, #10b981 100%);
+  color: #ffffff;
+  border: none;
+  border-radius: var(--radius-md);
+  padding: 0.65rem 1.4rem;
+  font-size: 0.84rem;
+  font-weight: 800;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  height: 38px;
+  box-shadow: 0 0 20px rgba(16, 185, 129, 0.4);
+  transition: all var(--transition-fast);
+  white-space: nowrap;
+  margin-bottom: 2px;
+}
+
+.btn-plan-corridor:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 0 25px rgba(16, 185, 129, 0.6);
+}
+
+.btn-plan-corridor:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.popular-corridors-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  padding-top: 0.65rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.presets-title {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+
+.preset-chip {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border-subtle);
+  border-radius: 999px;
+  padding: 0.3rem 0.75rem;
+  font-size: 0.74rem;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.preset-chip:hover {
+  background: rgba(16, 185, 129, 0.15);
+  border-color: rgba(16, 185, 129, 0.4);
+  color: #10b981;
+}
+
+/* -------------------------------------------------------------
+   3. Preemption Alert Banner
+   ------------------------------------------------------------- */
+.preemption-alert-banner {
+  background: linear-gradient(90deg, rgba(239, 68, 68, 0.25) 0%, rgba(16, 185, 129, 0.2) 100%);
+  border: 2px solid #10b981;
+  border-radius: var(--radius-lg);
+  padding: 1rem 1.5rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: 0 0 30px rgba(16, 185, 129, 0.35);
+  animation: preemptionGlow 1.5s infinite alternate;
+}
+
+@keyframes preemptionGlow {
+  from { box-shadow: 0 0 20px rgba(16, 185, 129, 0.25); }
+  to { box-shadow: 0 0 35px rgba(16, 185, 129, 0.55); }
+}
+
+.preemption-alert-left {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.beacon-siren {
+  font-size: 2rem;
+  animation: sirenWiggle 0.6s infinite ease-in-out;
+}
+
+@keyframes sirenWiggle {
+  0%, 100% { transform: rotate(-8deg); }
+  50% { transform: rotate(8deg); }
+}
+
+.preemption-title {
+  font-size: 1rem;
+  font-weight: 900;
+  color: #10b981;
+  letter-spacing: 0.04em;
+  display: block;
+}
+
+.preemption-sub {
+  margin: 0.2rem 0 0;
+  font-size: 0.8rem;
+  color: var(--text-primary);
+}
+
+.preemption-countdown-box {
+  background: rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(16, 185, 129, 0.5);
+  border-radius: var(--radius-md);
+  padding: 0.4rem 1rem;
+  text-align: center;
+}
+
+.countdown-tag {
+  font-size: 0.6rem;
+  font-weight: 800;
+  color: #6ee7b7;
+  letter-spacing: 0.05em;
+  display: block;
+}
+
+.countdown-timer {
+  font-size: 1.8rem;
+  font-weight: 900;
+  font-family: var(--font-mono);
+  color: #10b981;
+  line-height: 1.1;
+}
+
+/* -------------------------------------------------------------
+   4. Workspace Grid
+   ------------------------------------------------------------- */
+.corridor-workspace-grid {
+  display: grid;
+  grid-template-columns: 1.25fr 1fr;
+  gap: 1.25rem;
+  min-height: 650px;
+}
+
+/* Map Stage */
+.corridor-map-stage {
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+  position: relative;
+}
+
+.stage-top-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  background: rgba(0, 0, 0, 0.4);
+  border-bottom: 1px solid var(--border-subtle);
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.map-corridor-tags {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.map-badge {
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 0.25rem 0.6rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--border-subtle);
+}
+
+.map-badge.green { color: #10b981; border-color: rgba(16, 185, 129, 0.4); }
+.map-badge.cyan { color: #00f5ff; border-color: rgba(0, 245, 255, 0.4); }
+.map-badge.amber { color: #f59e0b; border-color: rgba(245, 158, 11, 0.4); }
+
+.map-basemap-controls {
+  display: flex;
+  gap: 0.35rem;
+}
+
+.basemap-pill {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-muted);
+  border-radius: var(--radius-sm);
+  padding: 0.25rem 0.6rem;
+  font-size: 0.72rem;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.basemap-pill.active {
+  background: rgba(16, 185, 129, 0.2);
+  border-color: #10b981;
+  color: #10b981;
+  font-weight: 700;
+}
+
+.corridor-map-canvas {
+  flex: 1;
+  min-height: 580px;
+  width: 100%;
+}
+
+/* Custom Leaflet Map Markers */
+.hub-marker {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  box-shadow: 0 0 15px rgba(0, 0, 0, 0.6);
+  border: 2px solid #fff;
+}
+
+.origin-marker {
+  background: #ef4444;
+  box-shadow: 0 0 20px #ef4444;
+}
+
+.dest-marker {
+  background: #10b981;
+  box-shadow: 0 0 20px #10b981;
+}
+
+.sig-marker {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: #111827;
+  border: 1.5px solid #f59e0b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.85rem;
+}
+
+.sig-marker.preempted {
+  border-color: #10b981;
+  box-shadow: 0 0 15px #10b981;
+  animation: signalPulse 0.8s infinite alternate;
+}
+
+@keyframes signalPulse {
+  from { transform: scale(0.9); }
+  to { transform: scale(1.2); }
+}
+
+/* -------------------------------------------------------------
+   5. AI HUD / Route Stack
+   ------------------------------------------------------------- */
+.corridor-hud-deck {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+/* Signal Preemption Trigger Card */
+.preemption-trigger-card {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.12) 0%, rgba(6, 78, 59, 0.18) 100%);
+  border: 1px solid rgba(16, 185, 129, 0.4);
+  border-radius: var(--radius-lg);
+  padding: 1.1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.trigger-header {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.trigger-icon {
+  font-size: 1.6rem;
+}
+
+.trigger-header strong {
+  font-size: 0.92rem;
+  color: #10b981;
+  display: block;
+}
+
+.trigger-header p {
+  margin: 0.2rem 0 0;
+  font-size: 0.76rem;
+  color: var(--text-secondary);
+}
+
+.btn-activate-preemption {
+  width: 100%;
+  background: #10b981;
+  color: #022c22;
+  border: none;
+  border-radius: var(--radius-md);
+  padding: 0.75rem 1rem;
+  font-size: 0.82rem;
+  font-weight: 900;
+  letter-spacing: 0.03em;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  box-shadow: 0 0 25px rgba(16, 185, 129, 0.4);
+  transition: all var(--transition-fast);
+}
+
+.btn-activate-preemption:hover:not(:disabled) {
+  background: #34d399;
+  box-shadow: 0 0 35px rgba(16, 185, 129, 0.65);
+}
+
+.btn-activate-preemption.active {
+  background: rgba(239, 68, 68, 0.25);
+  color: #ef4444;
+  border: 1px solid #ef4444;
+  box-shadow: 0 0 20px rgba(239, 68, 68, 0.4);
+}
+
+/* Route Choice Cards */
+.routes-comparison-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+
+.route-choice-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: 1.15rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  position: relative;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.route-choice-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.route-choice-card.primary-choice {
+  border-left: 4px solid #10b981;
+}
+
+.route-choice-card.primary-choice.selected {
+  border-color: #10b981;
+  background: radial-gradient(circle at 10% 20%, rgba(16, 185, 129, 0.08) 0%, var(--bg-surface) 100%);
+  box-shadow: 0 0 25px rgba(16, 185, 129, 0.2);
+}
+
+.route-choice-card.alt-choice {
+  border-left: 4px solid #00f5ff;
+}
+
+.route-choice-card.alt-choice.selected {
+  border-color: #00f5ff;
+  background: radial-gradient(circle at 10% 20%, rgba(0, 245, 255, 0.08) 0%, var(--bg-surface) 100%);
+  box-shadow: 0 0 25px rgba(0, 245, 255, 0.2);
+}
+
+.route-choice-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.route-badge-chip {
+  display: inline-block;
+  font-size: 0.62rem;
+  font-weight: 800;
+  padding: 0.2rem 0.55rem;
+  border-radius: 4px;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.25rem;
+}
+
+.route-badge-chip.emerald {
+  background: rgba(16, 185, 129, 0.2);
+  color: #10b981;
+  border: 1px solid #10b981;
+}
+
+.route-badge-chip.cyan {
+  background: rgba(0, 245, 255, 0.2);
+  color: #00f5ff;
+  border: 1px solid #00f5ff;
+}
+
+.route-choice-title {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: var(--text-pure);
+  line-height: 1.3;
+}
+
+.time-savings-pill {
+  background: rgba(16, 185, 129, 0.15);
+  border: 1px solid rgba(16, 185, 129, 0.4);
+  border-radius: var(--radius-md);
+  padding: 0.35rem 0.65rem;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  flex-shrink: 0;
+}
+
+.time-savings-pill.alt {
+  background: rgba(0, 245, 255, 0.12);
+  border-color: rgba(0, 245, 255, 0.4);
+}
+
+.time-num {
+  font-size: 1.15rem;
+  font-weight: 900;
+  font-family: var(--font-mono);
+  color: #10b981;
+  line-height: 1;
+}
+
+.time-savings-pill.alt .time-num {
+  color: #00f5ff;
+}
+
+.time-sub {
+  font-size: 0.58rem;
+  font-weight: 800;
+  color: #6ee7b7;
+  margin-top: 2px;
+}
+
+.time-savings-pill.alt .time-sub {
+  color: #7dd3fc;
+}
+
+/* Metrics Strip */
+.metrics-strip {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.5rem;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: var(--radius-sm);
+  padding: 0.5rem 0.65rem;
+}
+
+.metric-cell {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.metric-cell .lbl {
+  font-size: 0.58rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.metric-cell strong {
+  font-size: 0.78rem;
+  color: var(--text-pure);
+  font-family: var(--font-mono);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-top: 1px;
+}
+
+/* AI Reasons Box */
+.ai-reasons-box {
+  border: 1px solid;
+  border-radius: var(--radius-sm);
+  padding: 0.75rem;
+}
+
+.ai-reasons-box.primary {
+  background: rgba(16, 185, 129, 0.08);
+  border-color: rgba(16, 185, 129, 0.3);
+}
+
+.ai-reasons-box.alt {
+  background: rgba(0, 245, 255, 0.06);
+  border-color: rgba(0, 245, 255, 0.25);
+}
+
+.reasons-header {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-bottom: 0.45rem;
+}
+
+.reasons-header strong {
+  font-size: 0.76rem;
+  color: var(--text-pure);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.reasons-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.reasons-list li {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.45rem;
+  font-size: 0.73rem;
+  color: var(--text-secondary);
+  line-height: 1.35;
+}
+
+.bullet-check {
+  font-size: 0.7rem;
+  margin-top: 1px;
+}
+
+.bullet-info {
+  font-size: 0.7rem;
+  margin-top: 1px;
+}
+
+/* Driver Turn Guidance Card */
+.driver-directions-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: 1.15rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.directions-header {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.directions-icon {
+  font-size: 1.4rem;
+}
+
+.directions-header strong {
+  font-size: 0.88rem;
+  color: var(--text-pure);
+  display: block;
+}
+
+.directions-header p {
+  margin: 0.15rem 0 0;
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+
+.directions-stepper {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.step-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+  font-size: 0.76rem;
+  color: var(--text-primary);
+  line-height: 1.4;
+  padding-bottom: 0.4rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.step-item:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.step-num {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: rgba(16, 185, 129, 0.2);
+  color: #10b981;
+  border: 1px solid #10b981;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.65rem;
+  font-weight: 800;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+/* -------------------------------------------------------------
+   6. Responsive Layout
+   ------------------------------------------------------------- */
+@media (max-width: 1200px) {
+  .corridor-workspace-grid {
+    grid-template-columns: 1fr;
+  }
+  .corridor-map-canvas {
+    min-height: 450px;
+  }
+}
+
+@media (max-width: 768px) {
+  .green-corridor-container {
+    padding: 1rem;
+  }
+  .selectors-grid {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .btn-swap {
+    align-self: center;
+  }
+  .metrics-strip {
+    grid-template-columns: 1fr 1fr;
+  }
+}
