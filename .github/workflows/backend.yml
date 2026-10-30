@@ -1,0 +1,42 @@
+name: Backend CI
+
+on:
+  push:
+    paths:
+      - "core/**"
+      - "database/**"
+      - "web/**"
+      - "run.py"
+      - "requirement.txt"
+      - ".github/workflows/backend.yml"
+  pull_request:
+    paths:
+      - "core/**"
+      - "database/**"
+      - "web/**"
+      - "run.py"
+      - "requirement.txt"
+      - ".github/workflows/backend.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    name: Check Python syntax
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Compile backend modules
+        run: python -m compileall -q core database web run.py
