@@ -53,6 +53,12 @@ export default function Navbar() {
           <span>🧭</span> AI Route Planner
         </NavLink>
         <NavLink 
+          to="/parking" 
+          className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
+        >
+          <span>🅿️</span> Street Parking AI
+        </NavLink>
+        <NavLink 
           to="/officer" 
           className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
         >
