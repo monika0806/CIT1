@@ -8,6 +8,8 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
+    <!-- Leaflet GIS for coordinate picker -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
     <script>
         (function() {
             const savedTheme = localStorage.getItem('omnitraffic_theme') || 'dark';
@@ -180,11 +182,18 @@
                     <div class="cam-info">
                         <span class="rec-dot"></span>
                         <span class="cam-name" id="cam-title">CAM-01: HIGHWAY ARTERIAL</span>
-                        <span class="cam-tag" id="cam-location-badge" style="background: rgba(0, 245, 255, 0.15); color: var(--neon-cyan); border-color: rgba(0, 245, 255, 0.3);">📍 SIT Main Gate (13.3276, 77.1259)</span>
+                        <button class="cam-tag location-badge-btn" id="cam-location-badge" title="Click to Change Location Address & GPS Coordinates" style="background: rgba(0, 245, 255, 0.15); color: var(--neon-cyan); border: 1px solid rgba(0, 245, 255, 0.4); cursor: pointer; display: inline-flex; align-items: center; gap: 0.35rem; border-radius: 999px; padding: 0.25rem 0.65rem; font-family: inherit; font-size: 0.72rem; font-weight: 600; transition: all 0.2s ease;">
+                            <span>📍</span>
+                            <span id="cam-location-label">SIT Main Gate (13.3276, 77.1259)</span>
+                            <span style="font-size: 0.68rem; opacity: 0.75; margin-left: 2px;">✏️</span>
+                        </button>
                         <span class="cam-tag">LIVE FEED</span>
                     </div>
 
                     <div class="stage-actions">
+                        <button class="stage-btn" id="btn-edit-feed-loc" title="Set Location Address & Coordinates" style="border-color: rgba(0, 245, 255, 0.4); color: var(--neon-cyan);">
+                            <span>📍</span> Set Location
+                        </button>
                         <button class="stage-btn" id="snapshot-btn" title="Download Screenshot">
                             <span>📷</span> Snapshot
                         </button>
@@ -472,25 +481,31 @@
                     <div style="margin-bottom: 0.75rem;">
                         <select id="location-preset-select" class="flow-select" style="width: 100%;">
                             <option value="custom">-- Choose SIT Tumkur Location Preset or Enter GPS --</option>
-                            <option value="J1" data-lat="13.3276" data-lng="77.1259" selected>🏫 SIT Main Gate (BH Road Arterial)</option>
-                            <option value="J3" data-lat="13.3342" data-lng="77.1352">🛣️ Batawadi Junction (NH-48 Feeder / Toll link)</option>
-                            <option value="J4" data-lat="13.3238" data-lng="77.1285">🏢 SIT Back Gate & Engineering Hostel Zone</option>
-                            <option value="J2" data-lat="13.3308" data-lng="77.1228">🏘️ Gandhi Nagar / SIT 2nd Cross Commercial</option>
-                            <option value="J5" data-lat="13.3182" data-lng="77.1425">🛕 Kyathsandra Road / Siddaganga Math Access</option>
-                            <option value="J6" data-lat="13.3355" data-lng="77.1165">⭕ SS Puram / Ashoka Road Roundabout</option>
-                            <option value="J7" data-lat="13.3392" data-lng="77.1085">🚆 Tumakuru Central Railway Corridor</option>
-                            <option value="J8" data-lat="13.3420" data-lng="77.1020">🏛️ Town Hall Municipal Circle (City Core)</option>
+                            <option value="J1" data-lat="13.3276" data-lng="77.1259" data-name="SIT Main Gate CCTV 01" data-address="B.H. Road, SIT Campus Main Entrance, Tumakuru, Karnataka 572103" selected>🏫 SIT Main Gate (BH Road Arterial)</option>
+                            <option value="J3" data-lat="13.3342" data-lng="77.1352" data-name="Batawadi Toll Link CCTV" data-address="Batawadi Toll Link & NH-48 Express Feeder, Tumakuru, Karnataka">🛣️ Batawadi Junction (NH-48 Feeder / Toll link)</option>
+                            <option value="J4" data-lat="13.3238" data-lng="77.1285" data-name="SIT Back Gate CCTV" data-address="SIT Back Gate & Engineering Hostel Zone Road, Tumakuru, Karnataka">🏢 SIT Back Gate & Engineering Hostel Zone</option>
+                            <option value="J2" data-lat="13.3308" data-lng="77.1228" data-name="Gandhi Nagar Commercial CCTV" data-address="Gandhi Nagar Main Commercial Street, SIT 2nd Cross, Tumakuru">🏘️ Gandhi Nagar / SIT 2nd Cross Commercial</option>
+                            <option value="J5" data-lat="13.3182" data-lng="77.1425" data-name="Kyathsandra Math Access CCTV" data-address="Kyathsandra Road, Siddaganga Math Access Arterial, Tumakuru">🛕 Kyathsandra Road / Siddaganga Math Access</option>
+                            <option value="J6" data-lat="13.3355" data-lng="77.1165" data-name="SS Puram Roundabout CCTV" data-address="SS Puram Circle, Ashoka Road Roundabout, Tumakuru">⭕ SS Puram / Ashoka Road Roundabout</option>
+                            <option value="J7" data-lat="13.3392" data-lng="77.1085" data-name="Railway Station Corridor CCTV" data-address="Station Road, Tumakuru Central Railway Corridor, Tumakuru">🚆 Tumakuru Central Railway Corridor</option>
+                            <option value="J8" data-lat="13.3420" data-lng="77.1020" data-name="Town Hall Circle CCTV" data-address="Town Hall Circle, B.H. Road City Core, Tumakuru">🏛️ Town Hall Municipal Circle (City Core)</option>
                         </select>
+                    </div>
+
+                    <!-- Location Address (User Uploaded) -->
+                    <div style="margin-bottom: 0.75rem;">
+                        <label style="font-size: 0.72rem; color: var(--text-muted); display: block; margin-bottom: 0.2rem;">Location Address (Street / Landmark / Area):</label>
+                        <input type="text" id="upload-camera-address" value="B.H. Road, SIT Campus Main Entrance, Tumakuru, Karnataka 572103" class="flow-select" style="width: 100%;" placeholder="e.g. B.H. Road, SIT Campus Main Gate, Tumakuru">
                     </div>
 
                     <!-- Lat / Lng Inputs -->
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 0.75rem;">
                         <div>
-                            <label style="font-size: 0.72rem; color: var(--text-muted); display: block; margin-bottom: 0.2rem;">Latitude:</label>
+                            <label style="font-size: 0.72rem; color: var(--text-muted); display: block; margin-bottom: 0.2rem;">Latitude (Decimals):</label>
                             <input type="number" step="0.000001" id="camera-lat" value="13.3276" class="flow-select" style="width: 100%; font-family: monospace;">
                         </div>
                         <div>
-                            <label style="font-size: 0.72rem; color: var(--text-muted); display: block; margin-bottom: 0.2rem;">Longitude:</label>
+                            <label style="font-size: 0.72rem; color: var(--text-muted); display: block; margin-bottom: 0.2rem;">Longitude (Decimals):</label>
                             <input type="number" step="0.000001" id="camera-lng" value="77.1259" class="flow-select" style="width: 100%; font-family: monospace;">
                         </div>
                     </div>
@@ -503,7 +518,7 @@
 
                 <!-- GIS Sync Notice -->
                 <div style="font-size: 0.72rem; color: var(--text-secondary); background: rgba(0, 245, 255, 0.08); border-left: 3px solid var(--neon-cyan); padding: 0.5rem 0.75rem; border-radius: 4px;">
-                    ℹ️ Real-time video detection vehicle volume will be mapped automatically to this GPS location on the <strong>GIS Congestion Heatmap</strong> and will adjust live routing navigation dynamically.
+                    ℹ️ Real-time video detection vehicle volume will be mapped automatically to this <strong>Address & GPS Location</strong> on the GIS Congestion Heatmap and dynamic Route Planner.
                 </div>
 
                 <!-- Action Buttons -->
@@ -517,6 +532,99 @@
         </div>
     </div>
 
+    <!-- Dedicated Modal for Surveillance Feed Location & Address Configuration -->
+    <div class="modal-backdrop" id="location-edit-modal">
+        <div class="modal-card" style="max-width: 620px;">
+            <div class="modal-header">
+                <div class="modal-title">
+                    <span>📍</span> Set Surveillance Location, Address & Coordinates
+                </div>
+                <button class="modal-close" id="location-modal-close">&times;</button>
+            </div>
+            <div class="modal-body" style="display: flex; flex-direction: column; gap: 0.9rem; padding: 1.25rem;">
+                
+                <div style="font-size: 0.75rem; color: var(--text-secondary); background: rgba(0, 245, 255, 0.08); border-left: 3px solid var(--neon-cyan); padding: 0.6rem 0.85rem; border-radius: 4px; line-height: 1.45;">
+                    ℹ️ <strong>Internal Traffic Flow Mapping:</strong> Both the <strong>Location Address</strong> and <strong>Latitude & Longitude</strong> uploaded/entered here will be mapped internally to the real-time traffic flow engine, GIS congestion heatmap (green/orange/red thresholds), and AI route planner.
+                </div>
+
+                <!-- Quick Presets & GPS Auto Detect -->
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <label style="font-size: 0.75rem; font-weight: 700; color: var(--text-pure);">
+                        Quick Presets or Auto-Capture:
+                    </label>
+                    <button type="button" id="btn-edit-auto-gps" class="action-btn" style="padding: 0.25rem 0.65rem; font-size: 0.72rem; color: var(--neon-cyan); border-color: var(--neon-cyan);">
+                        <span>📍</span> Auto-Detect GPS
+                    </button>
+                </div>
+
+                <div>
+                    <select id="edit-preset-select" class="flow-select" style="width: 100%;">
+                        <option value="custom">-- Custom Location (Type Address & Coordinates below or Click Map) --</option>
+                        <option value="J1" data-lat="13.3276" data-lng="77.1259" data-name="CAM-01: HIGHWAY ARTERIAL" data-address="B.H. Road, SIT Campus Main Entrance, Tumakuru, Karnataka 572103" selected>🏫 SIT Main Gate (BH Road Corridor)</option>
+                        <option value="J3" data-lat="13.3342" data-lng="77.1352" data-name="CAM-02: Batawadi Toll Feeder" data-address="Batawadi Toll Link & NH-48 Express Feeder, Tumakuru, Karnataka">🛣️ Batawadi Junction (NH-48 Feeder / Toll link)</option>
+                        <option value="J4" data-lat="13.3238" data-lng="77.1285" data-name="CAM-03: SIT Back Gate Zone" data-address="SIT Back Gate & Engineering Hostel Zone Road, Tumakuru, Karnataka">🏢 SIT Back Gate & Engineering Hostel Zone</option>
+                        <option value="J2" data-lat="13.3308" data-lng="77.1228" data-name="CAM-04: Gandhi Nagar Commercial" data-address="Gandhi Nagar Main Commercial Street, SIT 2nd Cross, Tumakuru">🏘️ Gandhi Nagar / SIT 2nd Cross Commercial</option>
+                        <option value="J5" data-lat="13.3182" data-lng="77.1425" data-name="CAM-05: Kyathsandra Math Access" data-address="Kyathsandra Road, Siddaganga Math Access Arterial, Tumakuru">🛕 Kyathsandra Road / Siddaganga Math Access</option>
+                        <option value="J6" data-lat="13.3355" data-lng="77.1165" data-name="CAM-06: SS Puram Roundabout" data-address="SS Puram Circle, Ashoka Road Roundabout, Tumakuru">⭕ SS Puram / Ashoka Road Roundabout</option>
+                        <option value="J7" data-lat="13.3392" data-lng="77.1085" data-name="CAM-07: Tumakuru Central Railway" data-address="Station Road, Tumakuru Central Railway Corridor, Tumakuru">🚆 Tumakuru Central Railway Corridor</option>
+                        <option value="J8" data-lat="13.3420" data-lng="77.1020" data-name="CAM-08: Town Hall City Core" data-address="Town Hall Circle, B.H. Road City Core, Tumakuru">🏛️ Town Hall Municipal Circle (City Core)</option>
+                    </select>
+                </div>
+
+                <!-- Location Address Input -->
+                <div>
+                    <label style="font-size: 0.72rem; color: var(--text-muted); display: block; margin-bottom: 0.25rem;">
+                        📍 Location Address (Street / Landmark / Area):
+                    </label>
+                    <input type="text" id="edit-camera-address" value="B.H. Road, SIT Campus Main Entrance, Tumakuru, Karnataka 572103" class="flow-select" style="width: 100%;" placeholder="e.g. B.H. Road, opposite SIT Main Gate, Tumakuru">
+                </div>
+
+                <!-- Coordinates Lat / Lng -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+                    <div>
+                        <label style="font-size: 0.72rem; color: var(--text-muted); display: block; margin-bottom: 0.25rem;">
+                            🌐 Latitude (Decimals):
+                        </label>
+                        <input type="number" step="0.000001" id="edit-camera-lat" value="13.3276" class="flow-select" style="width: 100%; font-family: monospace;">
+                    </div>
+                    <div>
+                        <label style="font-size: 0.72rem; color: var(--text-muted); display: block; margin-bottom: 0.25rem;">
+                            🌐 Longitude (Decimals):
+                        </label>
+                        <input type="number" step="0.000001" id="edit-camera-lng" value="77.1259" class="flow-select" style="width: 100%; font-family: monospace;">
+                    </div>
+                </div>
+
+                <!-- Camera / Feed Name -->
+                <div>
+                    <label style="font-size: 0.72rem; color: var(--text-muted); display: block; margin-bottom: 0.25rem;">
+                        📹 Surveillance Feed Identifier / Name:
+                    </label>
+                    <input type="text" id="edit-camera-name" value="CAM-01: HIGHWAY ARTERIAL" class="flow-select" style="width: 100%;">
+                </div>
+
+                <!-- Interactive Mini Map Picker -->
+                <div>
+                    <label style="font-size: 0.72rem; color: var(--text-muted); display: block; margin-bottom: 0.25rem;">
+                        🗺️ Visual Map Pin (Click anywhere to update coordinates):
+                    </label>
+                    <div id="picker-mini-map" style="height: 160px; width: 100%; border-radius: var(--radius-md); border: 1px solid var(--border-subtle); overflow: hidden; position: relative;"></div>
+                </div>
+
+                <!-- Buttons -->
+                <div style="display: flex; justify-content: flex-end; gap: 0.6rem; margin-top: 0.3rem;">
+                    <button type="button" id="location-modal-cancel" class="action-btn">Cancel</button>
+                    <button type="button" id="location-modal-save" class="action-btn" style="background: var(--neon-cyan); color: #050811; font-weight: 800; border-color: var(--neon-cyan);">
+                        <span>💾</span> Save & Map Location Internally
+                    </button>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- Leaflet JS for Visual Coordinate Picker -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
     <!-- Client Controller Script -->
     <script src="{{ url_for('static', filename='js/app.js') }}"></script>
 </body>

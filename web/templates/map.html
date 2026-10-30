@@ -696,17 +696,22 @@
                 }
 
                 liveCameraMarker.bindPopup(`
-                    <div class="junction-popup" style="min-width: 210px;">
+                    <div class="junction-popup" style="min-width: 230px;">
                         <h4>📹 ${cam.name}</h4>
-                        <div class="popup-badge" style="background: ${cam.color}; color: #ffffff; font-weight: 800;">
-                            LIVE VIDEO FEED: ${cam.status.toUpperCase()}
+                        <div style="font-size: 0.72rem; color: #64748b; margin-bottom: 0.4rem; border-bottom: 1px dashed #cbd5e1; padding-bottom: 0.3rem;">
+                            📍 <strong>Address:</strong> ${cam.address || 'Surveillance Location, Tumakuru'}
                         </div>
-                        <div class="popup-stat-row"><span>Active In-Frame Vehicles:</span><strong>${cam.active_vehicles}</strong></div>
-                        <div class="popup-stat-row"><span>Measured Intensity:</span><strong>${cam.congestion_pct}%</strong></div>
-                        <div class="popup-stat-row"><span>Volume Status:</span><strong style="color: ${cam.color};">${cam.status}</strong></div>
-                        <div class="popup-stat-row"><span>Nearest Corridor:</span><span>${cam.nearest_node_name}</span></div>
-                        <div style="margin-top: 0.6rem; text-align: center; border-top: 1px solid #e2e8f0; padding-top: 0.4rem;">
-                            <a href="/" style="font-size: 0.72rem; color: #0284c7; text-decoration: none; font-weight: 700;">📡 Jump to Live Video Feed &rarr;</a>
+                        <div class="popup-badge" style="background: ${cam.color}; color: #ffffff; font-weight: 800;">
+                            VOLUME STATUS: ${cam.status.toUpperCase()}
+                        </div>
+                        <div class="popup-stat-row"><span>Active In-Frame:</span><strong>${cam.active_vehicles} vehicles</strong></div>
+                        <div class="popup-stat-row"><span>Congestion Index:</span><strong>${cam.congestion_pct}%</strong></div>
+                        <div class="popup-stat-row"><span>GPS Coordinates:</span><code>${cam.lat.toFixed(4)}, ${cam.lng.toFixed(4)}</code></div>
+                        <div class="popup-stat-row"><span>Mapped Junction:</span><span>${cam.nearest_node_name}</span></div>
+                        <div style="display: flex; gap: 0.4rem; margin-top: 0.6rem; border-top: 1px solid #e2e8f0; padding-top: 0.5rem;">
+                            <a href="/routes?from=LIVE_CAM" style="flex: 1; text-align: center; font-size: 0.7rem; background: #0284c7; color: white; padding: 0.3rem; border-radius: 4px; text-decoration: none; font-weight: 700;">Route From</a>
+                            <a href="/routes?to=LIVE_CAM" style="flex: 1; text-align: center; font-size: 0.7rem; background: #0ea5e9; color: white; padding: 0.3rem; border-radius: 4px; text-decoration: none; font-weight: 700;">Route To</a>
+                            <a href="/" style="text-align: center; font-size: 0.7rem; background: #f1f5f9; color: #0f172a; padding: 0.3rem 0.5rem; border-radius: 4px; text-decoration: none; font-weight: 700;" title="Live Surveillance Feed">Feed</a>
                         </div>
                     </div>
                 `);

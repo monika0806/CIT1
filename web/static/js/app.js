@@ -240,24 +240,31 @@ document.addEventListener('DOMContentLoaded', () => {
     const videoFileInput = document.getElementById('video-file-input');
     const btnAutoGps = document.getElementById('btn-auto-gps');
     const locationPresetSelect = document.getElementById('location-preset-select');
+    const uploadCameraAddress = document.getElementById('upload-camera-address');
     const cameraLat = document.getElementById('camera-lat');
     const cameraLng = document.getElementById('camera-lng');
     const cameraNameInput = document.getElementById('camera-name-input');
     const uploadSubmitBtn = document.getElementById('upload-submit-btn');
     const camLocationBadge = document.getElementById('cam-location-badge');
+    const camLocationLabel = document.getElementById('cam-location-label');
 
     let selectedUploadFile = null;
 
     if (uploadTrigger && uploadModal) {
-        uploadTrigger.addEventListener('click', () => {
-            uploadModal.classList.add('active');
+        uploadTrigger.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            uploadModal.classList.add('open', 'active');
         });
 
         const closeUploadModal = () => {
-            uploadModal.classList.remove('active');
+            uploadModal.classList.remove('open', 'active');
         };
         if (uploadModalClose) uploadModalClose.addEventListener('click', closeUploadModal);
         if (uploadCancelBtn) uploadCancelBtn.addEventListener('click', closeUploadModal);
+        uploadModal.addEventListener('click', (e) => {
+            if (e.target === uploadModal) closeUploadModal();
+        });
 
         // Dropzone interactions
         if (uploadDropzone && videoFileInput) {
@@ -307,7 +314,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (opt && opt.dataset.lat && opt.dataset.lng) {
                     if (cameraLat) cameraLat.value = opt.dataset.lat;
                     if (cameraLng) cameraLng.value = opt.dataset.lng;
-                    if (cameraNameInput) cameraNameInput.value = opt.textContent.replace(/^[^\s]+\s*/, '');
+                    if (cameraNameInput && opt.dataset.name) cameraNameInput.value = opt.dataset.name;
+                    if (uploadCameraAddress && opt.dataset.address) uploadCameraAddress.value = opt.dataset.address;
                 }
             });
         }
@@ -327,6 +335,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         if (cameraLat) cameraLat.value = lat;
                         if (cameraLng) cameraLng.value = lng;
                         if (cameraNameInput) cameraNameInput.value = `Auto GPS Feed (${lat}, ${lng})`;
+                        if (uploadCameraAddress) uploadCameraAddress.value = `User Auto-GPS Site [${lat}, ${lng}]`;
                         if (locationPresetSelect) locationPresetSelect.value = 'custom';
                         btnAutoGps.innerHTML = '<span>✅</span> GPS Locked';
                         setTimeout(() => { btnAutoGps.innerHTML = '<span>📍</span> Auto-Detect GPS'; }, 2500);
@@ -354,6 +363,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 formData.append('lat', cameraLat ? cameraLat.value : '13.3276');
                 formData.append('lng', cameraLng ? cameraLng.value : '77.1259');
                 formData.append('location_name', cameraNameInput ? cameraNameInput.value : 'Surveillance Feed');
+                formData.append('address', uploadCameraAddress ? uploadCameraAddress.value : 'SIT Campus Arterial, Tumakuru');
 
                 uploadSubmitBtn.innerHTML = '<span>⏳</span> Deploying Stream...';
                 uploadSubmitBtn.disabled = true;
@@ -372,9 +382,15 @@ document.addEventListener('DOMContentLoaded', () => {
                         if (camTitle) {
                             camTitle.textContent = `📁 ${data.filename.toUpperCase()}`;
                         }
-                        if (camLocationBadge && data.location) {
-                            camLocationBadge.textContent = `📍 ${data.location.name} (${Number(data.location.lat).toFixed(4)}, ${Number(data.location.lng).toFixed(4)})`;
-                            camLocationBadge.style.display = 'inline-block';
+                        if (data.location) {
+                            const addrShort = data.location.address ? data.location.address.split(',')[0] : data.location.name;
+                            if (camLocationLabel) {
+                                camLocationLabel.textContent = `${addrShort} (${Number(data.location.lat).toFixed(4)}, ${Number(data.location.lng).toFixed(4)})`;
+                            }
+                            if (camLocationBadge) {
+                                camLocationBadge.title = `Mapped Site: ${data.location.address || data.location.name} [${data.location.lat}, ${data.location.lng}]`;
+                                camLocationBadge.style.display = 'inline-flex';
+                            }
                         }
                         resetLocalCounts();
                     } else {
@@ -389,6 +405,202 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             });
         }
+    }
+
+    // =========================================================================
+    // DEDICATED LOCATION, ADDRESS & GPS EDIT MODAL CONTROLLER
+    // =========================================================================
+    const btnEditFeedLoc = document.getElementById('btn-edit-feed-loc');
+    const locationEditModal = document.getElementById('location-edit-modal');
+    const locationModalClose = document.getElementById('location-modal-close');
+    const locationModalCancel = document.getElementById('location-modal-cancel');
+    const locationModalSave = document.getElementById('location-modal-save');
+    const editPresetSelect = document.getElementById('edit-preset-select');
+    const editCameraAddress = document.getElementById('edit-camera-address');
+    const editCameraLat = document.getElementById('edit-camera-lat');
+    const editCameraLng = document.getElementById('edit-camera-lng');
+    const editCameraName = document.getElementById('edit-camera-name');
+    const btnEditAutoGps = document.getElementById('btn-edit-auto-gps');
+
+    let pickerMap = null;
+    let pickerMarker = null;
+
+    function openLocationModal() {
+        if (!locationEditModal) return;
+        locationEditModal.classList.add('open', 'active');
+        
+        // Fetch current active camera settings to populate modal
+        fetch('/api/camera/location')
+            .then(res => res.json())
+            .then(data => {
+                if (data) {
+                    if (editCameraAddress && data.address) editCameraAddress.value = data.address;
+                    if (editCameraLat && data.lat) editCameraLat.value = data.lat;
+                    if (editCameraLng && data.lng) editCameraLng.value = data.lng;
+                    if (editCameraName && data.name) editCameraName.value = data.name;
+                    initOrUpdatePickerMap(parseFloat(data.lat) || 13.3276, parseFloat(data.lng) || 77.1259);
+                }
+            })
+            .catch(() => {
+                const lat = parseFloat(editCameraLat ? editCameraLat.value : 13.3276);
+                const lng = parseFloat(editCameraLng ? editCameraLng.value : 77.1259);
+                initOrUpdatePickerMap(lat, lng);
+            });
+    }
+
+    function closeLocationModal() {
+        if (locationEditModal) locationEditModal.classList.remove('open', 'active');
+    }
+
+    function initOrUpdatePickerMap(lat, lng) {
+        if (typeof L === 'undefined') return;
+        const mapContainer = document.getElementById('picker-mini-map');
+        if (!mapContainer) return;
+
+        setTimeout(() => {
+            if (!pickerMap) {
+                pickerMap = L.map('picker-mini-map', {
+                    center: [lat, lng],
+                    zoom: 15,
+                    attributionControl: false
+                });
+
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    maxZoom: 19
+                }).addTo(pickerMap);
+
+                pickerMarker = L.marker([lat, lng], { draggable: true }).addTo(pickerMap);
+
+                pickerMarker.on('dragend', function (e) {
+                    const pos = e.target.getLatLng();
+                    if (editCameraLat) editCameraLat.value = pos.lat.toFixed(6);
+                    if (editCameraLng) editCameraLng.value = pos.lng.toFixed(6);
+                    if (editPresetSelect) editPresetSelect.value = 'custom';
+                });
+
+                pickerMap.on('click', function (e) {
+                    pickerMarker.setLatLng(e.latlng);
+                    if (editCameraLat) editCameraLat.value = e.latlng.lat.toFixed(6);
+                    if (editCameraLng) editCameraLng.value = e.latlng.lng.toFixed(6);
+                    if (editPresetSelect) editPresetSelect.value = 'custom';
+                });
+            } else {
+                pickerMap.invalidateSize();
+                pickerMap.setView([lat, lng], 15);
+                if (pickerMarker) pickerMarker.setLatLng([lat, lng]);
+            }
+        }, 150);
+    }
+
+    if (camLocationBadge) {
+        camLocationBadge.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            openLocationModal();
+        });
+    }
+
+    if (btnEditFeedLoc) {
+        btnEditFeedLoc.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            openLocationModal();
+        });
+    }
+
+    if (locationModalClose) locationModalClose.addEventListener('click', closeLocationModal);
+    if (locationModalCancel) locationModalCancel.addEventListener('click', closeLocationModal);
+    if (locationEditModal) {
+        locationEditModal.addEventListener('click', (e) => {
+            if (e.target === locationEditModal) closeLocationModal();
+        });
+    }
+
+    // Preset selection in Edit Modal
+    if (editPresetSelect) {
+        editPresetSelect.addEventListener('change', () => {
+            const opt = editPresetSelect.selectedOptions[0];
+            if (opt && opt.dataset.lat && opt.dataset.lng) {
+                const lat = parseFloat(opt.dataset.lat);
+                const lng = parseFloat(opt.dataset.lng);
+                if (editCameraLat) editCameraLat.value = lat.toFixed(6);
+                if (editCameraLng) editCameraLng.value = lng.toFixed(6);
+                if (editCameraAddress && opt.dataset.address) editCameraAddress.value = opt.dataset.address;
+                if (editCameraName && opt.dataset.name) editCameraName.value = opt.dataset.name;
+                initOrUpdatePickerMap(lat, lng);
+            }
+        });
+    }
+
+    // Auto GPS in Edit Modal
+    if (btnEditAutoGps) {
+        btnEditAutoGps.addEventListener('click', () => {
+            if (!navigator.geolocation) {
+                alert("Geolocation is not supported by your browser.");
+                return;
+            }
+            btnEditAutoGps.innerHTML = '<span>⏳</span> Locating...';
+            navigator.geolocation.getCurrentPosition(
+                (pos) => {
+                    const lat = pos.coords.latitude;
+                    const lng = pos.coords.longitude;
+                    if (editCameraLat) editCameraLat.value = lat.toFixed(6);
+                    if (editCameraLng) editCameraLng.value = lng.toFixed(6);
+                    if (editPresetSelect) editPresetSelect.value = 'custom';
+                    if (editCameraAddress) editCameraAddress.value = `Auto GPS Coordinate Site (${lat.toFixed(4)}, ${lng.toFixed(4)})`;
+                    btnEditAutoGps.innerHTML = '<span>✅</span> GPS Locked';
+                    initOrUpdatePickerMap(lat, lng);
+                    setTimeout(() => { btnEditAutoGps.innerHTML = '<span>📍</span> Auto-Detect GPS'; }, 2500);
+                },
+                (err) => {
+                    console.warn("GPS error:", err);
+                    alert("Could not retrieve GPS fix. You can click anywhere on the mini map to place the camera pin.");
+                    btnEditAutoGps.innerHTML = '<span>📍</span> Auto-Detect GPS';
+                },
+                { enableHighAccuracy: true, timeout: 8000 }
+            );
+        });
+    }
+
+    // Save Location, Address & Coordinates
+    if (locationModalSave) {
+        locationModalSave.addEventListener('click', async () => {
+            const lat = parseFloat(editCameraLat ? editCameraLat.value : 13.3276) || 13.3276;
+            const lng = parseFloat(editCameraLng ? editCameraLng.value : 77.1259) || 77.1259;
+            const name = (editCameraName ? editCameraName.value : '') || 'Surveillance Feed';
+            const address = (editCameraAddress ? editCameraAddress.value : '') || 'SIT Tumkur Corridor';
+
+            locationModalSave.innerHTML = '<span>⏳</span> Mapping Internally...';
+            locationModalSave.disabled = true;
+
+            try {
+                const res = await fetch('/api/camera/location', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ lat, lng, name, address })
+                });
+                const data = await res.json();
+                if (data) {
+                    if (camLocationLabel) {
+                        const addrShort = (data.address || address).split(',')[0];
+                        camLocationLabel.textContent = `${addrShort} (${Number(data.lat).toFixed(4)}, ${Number(data.lng).toFixed(4)})`;
+                    }
+                    if (camLocationBadge) {
+                        camLocationBadge.title = `Mapped Site: ${data.address || address} [${data.lat}, ${data.lng}]`;
+                    }
+                    if (camTitle && data.name) {
+                        camTitle.textContent = data.name.toUpperCase();
+                    }
+                    closeLocationModal();
+                }
+            } catch (err) {
+                console.error("Failed to update camera location:", err);
+                alert("Failed to map camera location to traffic network.");
+            } finally {
+                locationModalSave.innerHTML = '<span>💾</span> Save & Map Location Internally';
+                locationModalSave.disabled = false;
+            }
+        });
     }
 
     // =========================================================================

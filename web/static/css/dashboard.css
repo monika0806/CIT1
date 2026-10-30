@@ -1200,21 +1200,22 @@ h1, h2, h3, h4, .brand-title, .kpi-num, .pill-val {
 .modal-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.65);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  background: rgba(0, 0, 0, 0.72);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
+  z-index: 99999;
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.25s ease;
 }
 
-.modal-backdrop.open {
-  opacity: 1;
-  pointer-events: auto;
+.modal-backdrop.open,
+.modal-backdrop.active {
+  opacity: 1 !important;
+  pointer-events: auto !important;
 }
 
 .modal-card {
@@ -1224,13 +1225,14 @@ h1, h2, h3, h4, .brand-title, .kpi-num, .pill-val {
   width: 90%;
   max-width: 650px;
   overflow: hidden;
-  box-shadow: 0 25px 70px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 25px 70px rgba(0, 0, 0, 0.75);
   transform: scale(0.95);
   transition: transform 0.25s var(--ease-spring);
 }
 
-.modal-backdrop.open .modal-card {
-  transform: scale(1);
+.modal-backdrop.open .modal-card,
+.modal-backdrop.active .modal-card {
+  transform: scale(1) !important;
 }
 
 .modal-header {

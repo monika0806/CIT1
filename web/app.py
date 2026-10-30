@@ -1,5 +1,5 @@
 """
-OmniTraffic AI - Web Application & Command Center
+RoadPulseAI - Intelligent Traffic Intelligence & Law Enforcement Platform
 Flask web server with real-time MJPEG stream, REST API, and WebSocket/SSE telemetry.
 """
 
@@ -12,6 +12,7 @@ from werkzeug.utils import secure_filename
 
 from core.pipeline import MasterTrafficPipeline
 from core.map_simulator import sit_simulator
+from core.parking_analyzer import narrow_street_analyzer
 from database.db import (
     get_recent_violations, get_statistics, get_challan_details,
     search_challans, pay_challan, get_connection
@@ -20,6 +21,7 @@ from database.db import (
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 UPLOAD_FOLDER = os.path.join(BASE_DIR, "uploads")
 SAMPLE_FOLDER = os.path.join(BASE_DIR, "sample_data")
+DIST_DIR = os.path.join(BASE_DIR, "web", "dist")
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 app = Flask(
@@ -32,6 +34,13 @@ app.jinja_env.auto_reload = True
 app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
 app.config["MAX_CONTENT_LENGTH"] = 200 * 1024 * 1024 # 200MB max upload
 
+@app.after_request
+def add_cors_headers(response):
+    response.headers["Access-Control-Allow-Origin"] = "*"
+    response.headers["Access-Control-Allow-Headers"] = "Content-Type,Authorization"
+    response.headers["Access-Control-Allow-Methods"] = "GET,POST,OPTIONS,PUT,DELETE"
+    return response
+
 # Global Master Pipeline Instance configured for two-way divided traffic flow
 pipeline = MasterTrafficPipeline(expected_direction="bidirectional_split")
 
@@ -41,7 +50,8 @@ current_telemetry = {}
 is_paused = False
 
 active_camera_info = {
-    "name": "SIT Main Gate (BH Road Corridor)",
+    "name": "CAM-01: HIGHWAY ARTERIAL",
+    "address": "B.H. Road, SIT Campus Main Entrance, Tumakuru, Karnataka 572103",
     "lat": 13.3276,
     "lng": 77.1259,
     "active": True
@@ -87,7 +97,8 @@ def generate_frames():
                 active_camera_info["lat"],
                 active_camera_info["lng"],
                 active_camera_info["name"],
-                active_count
+                active_count,
+                address=active_camera_info.get("address")
             )
             
             # Encode frame to JPEG
@@ -104,12 +115,10 @@ def generate_frames():
             
         cap.release()
 
-@app.route("/")
-def index():
-    return render_template("index.html")
 
-@app.route("/officer")
-def officer_dashboard():
+
+@app.route("/legacy/officer")
+def legacy_officer_dashboard():
     try:
         conn = get_connection()
         cursor = conn.cursor()
@@ -139,24 +148,22 @@ def officer_dashboard():
         total_revenue=total_revenue
     )
 
-@app.route("/citizen")
-def citizen_dashboard():
+@app.route("/legacy/citizen")
+def legacy_citizen_dashboard():
     q = request.args.get("q", "").strip()
     if q:
-        if q.upper() == "ALL":
-            challans = search_challans("")
-        else:
-            challans = search_challans(q)
+        challans = search_challans("") if q.upper() == "ALL" else search_challans(q)
     else:
-        # Show recent challans by default so citizens immediately see citations
         challans = search_challans("")[:15]
-        
     return render_template("citizen.html", challans=challans, query=q)
 
-@app.route("/map")
-def traffic_map_dashboard():
-    """Renders the GIS Congestion Heatmap & Predictive Traffic Hub for SIT Tumkur."""
+@app.route("/legacy/map")
+def legacy_traffic_map_dashboard():
     return render_template("map.html")
+
+@app.route("/legacy/routes")
+def legacy_routes_dashboard():
+    return render_template("routes.html")
 
 @app.route("/api/map/telemetry")
 def api_map_telemetry():
@@ -234,7 +241,26 @@ def get_telemetry():
 def api_violations():
     limit = request.args.get("limit", default=25, type=int)
     violations = get_recent_violations(limit=limit)
+    for v in violations:
+        if "challan_no" not in v and "challan_number" in v:
+            v["challan_no"] = v["challan_number"]
+        if "fine_amount" not in v or v["fine_amount"] is None:
+            v["fine_amount"] = 1000.0
     return jsonify(violations)
+
+@app.route("/api/violations/<int:viol_id>/status", methods=["POST"])
+def api_update_violation_status(viol_id):
+    data = request.json or {}
+    new_status = data.get("status", "APPROVED")
+    try:
+        conn = get_connection()
+        cursor = conn.cursor()
+        cursor.execute("UPDATE violations SET status = ? WHERE id = ?", (new_status, viol_id))
+        conn.commit()
+        conn.close()
+        return jsonify({"status": "success", "id": viol_id, "new_status": new_status})
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
 
 @app.route("/api/stats")
 def api_stats():
@@ -333,10 +359,6 @@ def select_source():
     current_telemetry.clear()
     return jsonify({"status": "success", "source": str(video_source_path)})
 
-@app.route("/routes")
-def routes_dashboard():
-    """Renders the Congestion-Aware AI Route Planner Dashboard."""
-    return render_template("routes.html")
 
 @app.route("/api/routes/nodes")
 def api_routes_nodes():
@@ -359,22 +381,71 @@ def api_routes_plan():
 
 @app.route("/api/camera/location", methods=["GET", "POST"])
 def api_camera_location():
-    """Gets or updates live camera location."""
+    """Gets or updates live camera location, address, and coordinates."""
     global active_camera_info
     if request.method == "POST":
         data = request.json or {}
         if "lat" in data and "lng" in data:
-            active_camera_info["lat"] = float(data["lat"])
-            active_camera_info["lng"] = float(data["lng"])
-        if "name" in data:
-            active_camera_info["name"] = data["name"]
+            try:
+                active_camera_info["lat"] = float(data["lat"])
+                active_camera_info["lng"] = float(data["lng"])
+            except (ValueError, TypeError):
+                pass
+        if "name" in data and data["name"]:
+            active_camera_info["name"] = data["name"].strip()
+        if "address" in data and data["address"]:
+            active_camera_info["address"] = data["address"].strip()
+            
         sit_simulator.inject_live_camera_feed(
             active_camera_info["lat"],
             active_camera_info["lng"],
             active_camera_info["name"],
-            current_telemetry.get("vehicle_count_visible", 0)
+            current_telemetry.get("vehicle_count_visible", 0),
+            address=active_camera_info.get("address")
         )
     return jsonify(active_camera_info)
+
+@app.route("/api/parking/streets")
+def api_parking_streets():
+    """Returns list of monitored narrow streets with their designated rules."""
+    return jsonify(narrow_street_analyzer.get_all_streets())
+
+@app.route("/api/parking/analyze")
+def api_parking_analyze():
+    """
+    Analyzes narrow-street bilateral parking from the nearest camera beacon.
+    Identifies which curb is legal vs prohibited and checks for carriageway blockage.
+    """
+    street_id = request.args.get("street_id")
+    lat = request.args.get("lat")
+    lng = request.args.get("lng")
+    
+    camera_lat = float(lat) if lat else active_camera_info.get("lat")
+    camera_lng = float(lng) if lng else active_camera_info.get("lng")
+    
+    analysis = narrow_street_analyzer.analyze_street_parking(
+        street_id=street_id or "NST-01",
+        camera_lat=camera_lat,
+        camera_lng=camera_lng
+    )
+    return jsonify(analysis)
+
+@app.route("/api/parking/rule", methods=["POST"])
+def api_parking_rule():
+    """Updates manual override for designated legal parking side ('LEFT', 'RIGHT', or null)."""
+    data = request.json or {}
+    street_id = data.get("street_id", "NST-01")
+    side = data.get("side") # "LEFT", "RIGHT", or None
+    success = narrow_street_analyzer.set_manual_override(street_id, side)
+    return jsonify({"status": "success" if success else "error", "street_id": street_id, "side": side})
+
+@app.route("/api/parking/issue-challans", methods=["POST"])
+def api_parking_issue_challans():
+    """Issues e-challans for all vehicles parked on the prohibited side of a narrow street."""
+    data = request.json or {}
+    street_id = data.get("street_id", "NST-01")
+    result = narrow_street_analyzer.issue_challan_for_violating_vehicles(street_id)
+    return jsonify(result)
 
 @app.route("/api/upload", methods=["POST"])
 def upload_file():
@@ -389,10 +460,11 @@ def upload_file():
     save_path = os.path.join(app.config["UPLOAD_FOLDER"], filename)
     file.save(save_path)
     
-    # Retrieve Latitude & Longitude & Location Name
+    # Retrieve Latitude & Longitude & Location Name & Address
     lat = request.form.get("lat")
     lng = request.form.get("lng")
     loc_name = request.form.get("location_name") or f"Camera Feed: {filename}"
+    address = request.form.get("address") or request.form.get("location_address") or "Custom Surveillance Site, Tumakuru"
     
     try:
         lat = float(lat) if lat else 13.3276
@@ -402,6 +474,7 @@ def upload_file():
         
     active_camera_info = {
         "name": loc_name,
+        "address": address,
         "lat": lat,
         "lng": lng,
         "active": True
@@ -412,8 +485,8 @@ def upload_file():
     pipeline.wrong_way_analyzer.reset()
     current_telemetry.clear()
     
-    # Immediately inject into GIS simulator
-    sit_simulator.inject_live_camera_feed(lat, lng, loc_name, active_vehicles=0)
+    # Immediately inject into GIS simulator with address
+    sit_simulator.inject_live_camera_feed(lat, lng, loc_name, active_vehicles=0, address=address)
     
     return jsonify({
         "status": "success",
@@ -430,9 +503,30 @@ def reset_counts():
     current_telemetry.clear()
     return jsonify({"status": "success"})
 
+# -------------------------------------------------------------
+# SPA React Frontend & Static File Servicing
+# -------------------------------------------------------------
+@app.route("/", defaults={"path": ""})
+@app.route("/<path:path>")
+def serve_spa(path):
+    # Guard API, video feed, and uploaded static files from SPA catch-all
+    if path.startswith("api/") or path == "video_feed" or path.startswith("static/") or path.startswith("receipt/"):
+        return jsonify({"error": "Resource not found"}), 404
+        
+    if os.path.exists(DIST_DIR):
+        file_path = os.path.join(DIST_DIR, path)
+        if path and os.path.exists(file_path) and os.path.isfile(file_path):
+            return send_from_directory(DIST_DIR, path)
+        index_file = os.path.join(DIST_DIR, "index.html")
+        if os.path.exists(index_file):
+            return send_from_directory(DIST_DIR, "index.html")
+            
+    # Fallback to Jinja template if React dist bundle is not yet built
+    return render_template("index.html")
+
 if __name__ == "__main__":
     print("\n=======================================================")
-    print(" 🚀 OmniTraffic AI Command Center is Live!")
+    print(" 🚀 RoadPulseAI Command Center is Live!")
     print(" 🌐 Access Dashboard at: http://127.0.0.1:5000")
     print("=======================================================\n")
     app.run(host="0.0.0.0", port=5000, debug=False, threaded=True)

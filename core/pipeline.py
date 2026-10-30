@@ -1,5 +1,5 @@
 """
-OmniTraffic AI - Unified Master Pipeline
+RoadPulseAI - Unified Master Pipeline
 Integrates Detection, Tracking, Counting, Classification, Density Estimation,
 Helmet Detection, Triple Riding, Number Plate OCR, and Wrong-Way Enforcement.
 """
@@ -24,7 +24,7 @@ class MasterTrafficPipeline:
                  expected_direction="auto",
                  line_y_ratio=0.60):
         
-        print("[Pipeline] Initializing OmniTraffic AI Pipeline...")
+        print("[Pipeline] Initializing RoadPulseAI Pipeline...")
         self.detector = MultiModelDetector(coco_model_path, helmet_model_path)
         self.counter = VehicleCounter(line_y_ratio=line_y_ratio)
         self.density_analyzer = DensityAnalyzer()
@@ -191,7 +191,7 @@ class MasterTrafficPipeline:
         cv2.rectangle(img, (10, 10), (10 + hud_w, 10 + hud_h), (80, 80, 95), 1)
         
         # HUD Header
-        cv2.putText(img, "OMNITRAFFIC AI COMMAND HUD", (20, 32), 
+        cv2.putText(img, "ROADPULSE AI COMMAND HUD", (20, 32), 
                     cv2.FONT_HERSHEY_SIMPLEX, 0.55, (0, 215, 255), 2)
         cv2.line(img, (20, 40), (10 + hud_w - 10, 40), (60, 60, 75), 1)
         

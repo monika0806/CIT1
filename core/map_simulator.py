@@ -274,7 +274,20 @@ class SITTumkurTrafficSimulator:
         ]
         
         # Live camera injection from video feed
-        self.live_camera = None
+        self.live_camera = {
+            "active": True,
+            "name": "SIT Main Gate CCTV 01",
+            "address": "B.H. Road, SIT Campus Main Entrance, Tumakuru",
+            "lat": 13.3276,
+            "lng": 77.1259,
+            "active_vehicles": 0,
+            "congestion_pct": 28.0,
+            "status": "Free Flow",
+            "color": "#10b981",
+            "timestamp": time.time(),
+            "nearest_node_id": "J1",
+            "nearest_node_name": "SIT Main Gate (BH Road)"
+        }
 
         # Simulation Configuration & States
         self.scenario = "college_rush" # "normal", "college_rush", "heavy_monsoon", "highway_diverted"
@@ -476,14 +489,15 @@ class SITTumkurTrafficSimulator:
                     
         return points
 
-    def inject_live_camera_feed(self, lat, lng, name="Surveillance Cam", active_vehicles=0, is_active=True):
+    def inject_live_camera_feed(self, lat, lng, name="Surveillance Cam", active_vehicles=0, is_active=True, address=None):
         """
-        Dynamically binds real-time video detection metrics to GIS coordinates.
+        Dynamically binds real-time video detection metrics to GIS coordinates and street address.
         Maps volume against thresholds: Green (<10 veh), Orange (10-22 veh), Red (>22 veh).
         """
         lat = float(lat)
         lng = float(lng)
         active_veh = int(active_vehicles)
+        address_str = address or (self.live_camera.get("address") if self.live_camera else "SIT Main Gate, B.H. Road, Tumakuru")
         
         # Determine volume threshold status and colors
         if active_veh < 10:
@@ -525,6 +539,7 @@ class SITTumkurTrafficSimulator:
         self.live_camera = {
             "active": is_active,
             "name": name or "Live Surveillance Feed",
+            "address": address_str,
             "lat": lat,
             "lng": lng,
             "active_vehicles": active_veh,
@@ -684,8 +699,8 @@ class SITTumkurTrafficSimulator:
         }
 
     def get_routing_nodes(self):
-        """Returns list of selectable road junctions for the route planner."""
-        return [
+        """Returns list of selectable road junctions for the route planner, including active live surveillance feed."""
+        nodes_list = [
             {
                 "id": jid,
                 "name": node["name"],
@@ -698,23 +713,60 @@ class SITTumkurTrafficSimulator:
             }
             for jid, node in self.nodes.items()
         ]
+        if self.live_camera and self.live_camera.get("active"):
+            cam = self.live_camera
+            addr = cam.get("address") or cam.get("name") or "Surveillance Feed Site"
+            nodes_list.insert(0, {
+                "id": "LIVE_CAM",
+                "name": f"📹 Live Feed: {addr}",
+                "address": addr,
+                "lat": cam["lat"],
+                "lng": cam["lng"],
+                "type": "camera_feed",
+                "description": f"User Uploaded Location: {addr} ({cam['lat']:.4f}, {cam['lng']:.4f})",
+                "current_congestion": cam.get("congestion_pct", 30.0),
+                "current_speed": self.state.get(cam.get("nearest_node_id", "J1"), {}).get("avg_speed", 35.0)
+            })
+        return nodes_list
 
     def find_smart_routes(self, origin_id, dest_id):
         """
         AI Congestion-Aware Routing Engine.
         Finds the Fastest Route (congestion optimized) and Alternative Routes (bypasses).
         Weights travel time based on live vehicle volume, speed, and congestion bottlenecks.
+        Supports routing to and from live camera location.
         """
         self.update()
-        if origin_id not in self.nodes or dest_id not in self.nodes:
+        
+        is_origin_cam = (origin_id == "LIVE_CAM" and self.live_camera and self.live_camera.get("active"))
+        is_dest_cam = (dest_id == "LIVE_CAM" and self.live_camera and self.live_camera.get("active"))
+        
+        eff_origin = self.live_camera.get("nearest_node_id", "J1") if is_origin_cam else origin_id
+        eff_dest = self.live_camera.get("nearest_node_id", "J1") if is_dest_cam else dest_id
+
+        if eff_origin not in self.nodes or eff_dest not in self.nodes:
             return {"status": "error", "message": "Invalid origin or destination node."}
             
+        def get_display_meta(nid, is_cam):
+            if is_cam and self.live_camera:
+                return {
+                    "id": "LIVE_CAM",
+                    "name": f"📹 Live Feed: {self.live_camera.get('address', 'Surveillance Location')}",
+                    "lat": self.live_camera["lat"],
+                    "lng": self.live_camera["lng"],
+                    "type": "camera_feed",
+                    "description": self.live_camera.get("address", "Surveillance Feed Location")
+                }
+            return self.nodes[nid]
+
+        origin_meta = get_display_meta(eff_origin, is_origin_cam)
+        dest_meta = get_display_meta(eff_dest, is_dest_cam)
+            
         if origin_id == dest_id:
-            node = self.nodes[origin_id]
             return {
                 "status": "success",
-                "origin": node,
-                "destination": node,
+                "origin": origin_meta,
+                "destination": dest_meta,
                 "recommended_route": {
                     "name": "Same Location",
                     "distance_km": 0.0,
@@ -723,7 +775,7 @@ class SITTumkurTrafficSimulator:
                     "congestion_pct": 0.0,
                     "status": "Free Flow",
                     "color": "#10b981",
-                    "polyline": [[node["lat"], node["lng"]]],
+                    "polyline": [[origin_meta["lat"], origin_meta["lng"]]],
                     "directions": ["You are already at your destination."]
                 },
                 "alternative_routes": []
@@ -760,15 +812,15 @@ class SITTumkurTrafficSimulator:
             penalized = penalized_edges or set()
             import heapq
             distances = {jid: float("inf") for jid in self.nodes}
-            distances[origin_id] = 0.0
+            distances[eff_origin] = 0.0
             parent = {} # v -> (u, edge_data, is_forward)
-            pq = [(0.0, origin_id)]
+            pq = [(0.0, eff_origin)]
             
             while pq:
                 d, u = heapq.heappop(pq)
                 if d > distances[u]:
                     continue
-                if u == dest_id:
+                if u == eff_dest:
                     break
                     
                 for v, edge, is_fwd in adj[u]:
@@ -781,14 +833,14 @@ class SITTumkurTrafficSimulator:
                         parent[v] = (u, edge, is_fwd)
                         heapq.heappush(pq, (new_d, v))
                         
-            if dest_id not in parent:
+            if eff_dest not in parent:
                 return None
                 
             # Reconstruct path
-            path_nodes = [dest_id]
+            path_nodes = [eff_dest]
             path_edges = []
-            curr = dest_id
-            while curr != origin_id:
+            curr = eff_dest
+            while curr != eff_origin:
                 prev_node, edge, is_fwd = parent[curr]
                 path_edges.append((edge, is_fwd))
                 curr = prev_node
@@ -829,14 +881,19 @@ class SITTumkurTrafficSimulator:
                 else:
                     polyline.extend(coords[1:]) # avoid duplicate junction vertex
                     
+            if is_origin_cam:
+                polyline.insert(0, [self.live_camera["lat"], self.live_camera["lng"]])
+            if is_dest_cam:
+                polyline.append([self.live_camera["lat"], self.live_camera["lng"]])
+                    
             # Directions
-            directions = [f"Depart from {self.nodes[origin_id]['name']}"]
+            directions = [f"Depart from {origin_meta['name']}"]
             for i, (edge, is_fwd) in enumerate(edges):
                 target_node = nodes[i + 1]
                 t_name = self.nodes[target_node]["name"]
                 c_level = "🟢 Free" if edge["congestion_pct"] < 35 else ("🟠 Moderate" if edge["congestion_pct"] < 65 else "🔴 Heavy Bottleneck")
                 directions.append(f"Follow {edge['name']} for {edge['length_km']} km toward {t_name} ({c_level}, ~{round(edge['avg_speed'])} km/h)")
-            directions.append(f"Arrive at {self.nodes[dest_id]['name']}")
+            directions.append(f"Arrive at {dest_meta['name']}")
 
             delay = max(0.0, total_live_time - total_free_time)
             if avg_cong < 35:
@@ -860,7 +917,7 @@ class SITTumkurTrafficSimulator:
                 "congestion_pct": round(avg_cong, 1),
                 "status": status,
                 "color": color,
-                "nodes": [self.nodes[n]["name"] for n in nodes],
+                "nodes": [origin_meta["name"]] + [self.nodes[n]["name"] for n in nodes[1:-1]] + [dest_meta["name"]],
                 "polyline": polyline,
                 "directions": directions
             }
@@ -887,8 +944,8 @@ class SITTumkurTrafficSimulator:
 
         return {
             "status": "success",
-            "origin": self.nodes[origin_id],
-            "destination": self.nodes[dest_id],
+            "origin": origin_meta,
+            "destination": dest_meta,
             "savings_summary": savings_text,
             "recommended_route": route_primary,
             "alternative_routes": alternatives

@@ -1,5 +1,5 @@
 """
-OmniTraffic AI - Main Entry Point
+RoadPulseAI - Main Entry Point
 Launch the Web Command Center or run headless video processing via CLI.
 
 Usage:
@@ -19,7 +19,7 @@ import time
 def run_web(port=5000, host="0.0.0.0"):
     from web.app import app
     print("\n" + "=" * 60)
-    print(" 🚀 OmniTraffic AI Command Center & Enforcement Hub")
+    print(" 🚀 RoadPulseAI Command Center & Enforcement Hub")
     print(f" 🌐 Dashboard URL: http://127.0.0.1:{port}")
     print("=" * 60 + "\n")
     app.run(host=host, port=port, debug=False, threaded=True)
@@ -74,7 +74,7 @@ def run_cli(video_path, output_path="output_annotated.mp4", heatmap=False, direc
     print(f"\n[CLI] Processing complete! Annotated video saved to: {output_path}")
 
 def main():
-    parser = argparse.ArgumentParser(description="OmniTraffic AI - Smart Traffic & Enforcement System")
+    parser = argparse.ArgumentParser(description="RoadPulseAI - Smart Traffic & Enforcement System")
     parser.add_argument("--cli", action="store_true", help="Run in headless CLI video processing mode")
     parser.add_argument("--video", type=str, default="sample_data/traffic.mp4", help="Input video file path for CLI mode")
     parser.add_argument("--output", type=str, default="output_annotated.mp4", help="Output annotated video path for CLI mode")
