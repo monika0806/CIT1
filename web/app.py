@@ -18,7 +18,8 @@ from core.parking_analyzer import narrow_street_analyzer
 from core.safety_analyzer import women_safety_analyzer
 from database.db import (
     get_recent_violations, get_statistics, get_challan_details,
-    search_challans, pay_challan, get_connection, log_sos_dispatch
+    search_challans, pay_challan, get_connection, log_sos_dispatch,
+    log_violation
 )
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -255,15 +256,88 @@ def api_violations():
 def api_update_violation_status(viol_id):
     data = request.json or {}
     new_status = data.get("status", "APPROVED")
+    officer_name = data.get("officer_name") or "Authorized Traffic Officer"
     try:
         conn = get_connection()
         cursor = conn.cursor()
         cursor.execute("UPDATE violations SET status = ? WHERE id = ?", (new_status, viol_id))
+        cursor.execute("UPDATE echallans SET status = ? WHERE violation_id = ?", (new_status, viol_id))
         conn.commit()
         conn.close()
-        return jsonify({"status": "success", "id": viol_id, "new_status": new_status})
+        return jsonify({
+            "status": "success", 
+            "id": viol_id, 
+            "new_status": new_status,
+            "reviewed_by": officer_name
+        })
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
+
+# -------------------------------------------------------------
+# Officer Command Portal Authentication & Session API
+# -------------------------------------------------------------
+OFFICER_CREDENTIALS = {
+    "officer": {
+        "password": "police123",
+        "name": "PSI Rajeshwari K.",
+        "badge_id": "TK-PSI-409",
+        "rank": "Police Sub-Inspector",
+        "station": "Tumakuru South Traffic Division",
+        "role": "ENFORCEMENT_OFFICER"
+    },
+    "inspector": {
+        "password": "tumakuru123",
+        "name": "Circle Inspector Mohan Kumar",
+        "badge_id": "TK-CI-102",
+        "rank": "Circle Inspector of Police",
+        "station": "Tumakuru City Traffic Sub-Division",
+        "role": "CIRCLE_INSPECTOR"
+    },
+    "admin": {
+        "password": "police@tumakuru",
+        "name": "ACP Traffic Enforcement Command",
+        "badge_id": "TK-ACP-01",
+        "rank": "Assistant Commissioner of Police",
+        "station": "Tumakuru District Police HQ",
+        "role": "SUPER_ADMIN"
+    }
+}
+
+@app.route("/api/officer/login", methods=["POST"])
+def api_officer_login():
+    """Authenticates law enforcement officer credentials."""
+    data = request.json or {}
+    username = (data.get("username") or "").strip().lower()
+    password = (data.get("password") or "").strip()
+
+    if username in OFFICER_CREDENTIALS and OFFICER_CREDENTIALS[username]["password"] == password:
+        officer = OFFICER_CREDENTIALS[username].copy()
+        officer.pop("password")
+        token = f"AUTH-TK-{username}-{int(time.time()*1000)}"
+        return jsonify({
+            "status": "success",
+            "message": f"Welcome, {officer['name']}. Officer session established.",
+            "token": token,
+            "officer": officer
+        })
+    
+    return jsonify({
+        "status": "error",
+        "message": "Access Denied: Invalid Officer Badge ID / Username or Password."
+    }), 401
+
+@app.route("/api/officer/verify", methods=["POST"])
+def api_officer_verify():
+    """Verifies that an officer session token is valid."""
+    data = request.json or {}
+    token = data.get("token") or ""
+    if token.startswith("AUTH-TK-"):
+        parts = token.split("-")
+        if len(parts) >= 3 and parts[2] in OFFICER_CREDENTIALS:
+            officer = OFFICER_CREDENTIALS[parts[2]].copy()
+            officer.pop("password")
+            return jsonify({"status": "success", "valid": True, "officer": officer})
+    return jsonify({"status": "error", "valid": False}), 401
 
 @app.route("/api/stats")
 def api_stats():
@@ -449,8 +523,77 @@ def api_parking_issue_challans():
     """Issues e-challans for all vehicles parked on the prohibited side of a narrow street."""
     data = request.json or {}
     street_id = data.get("street_id", "NST-01")
+    street_name = data.get("street_name") or "Tumakuru Urban Narrow Corridor"
+    vehicles_data = data.get("vehicles")
+
+    if vehicles_data and isinstance(vehicles_data, list):
+        issued_challans = []
+        for veh in vehicles_data:
+            if not veh.get("is_violating"):
+                continue
+            plate = veh.get("plate") or "KA-06-UNKNOWN"
+            vtype = veh.get("type") or veh.get("model") or "car"
+            fine = float(veh.get("fine_amount") or 1000.0)
+            curb_side = veh.get("side") or "RIGHT"
+            viol_id, challan_no = log_violation(
+                track_id=None,
+                violation_type="ILLEGAL_SIDE_PARKING",
+                vehicle_type=vtype,
+                license_plate=plate,
+                confidence=float(veh.get("confidence") or 0.94),
+                snapshot_path=veh.get("crop_url") or "/static/violations/sample_parking_viol.jpg"
+            )
+            issued_challans.append({
+                "vehicle_id": veh.get("id"),
+                "plate": plate,
+                "challan_number": challan_no,
+                "violation_id": viol_id,
+                "fine_amount": fine,
+                "curb_side": curb_side,
+                "status": "ISSUED",
+                "street_name": street_name
+            })
+        return jsonify({
+            "status": "success",
+            "street_id": street_id,
+            "street_name": street_name,
+            "issued_count": len(issued_challans),
+            "total_fine_amount": sum(c["fine_amount"] for c in issued_challans),
+            "challans": issued_challans
+        })
+
     result = narrow_street_analyzer.issue_challan_for_violating_vehicles(street_id)
     return jsonify(result)
+
+@app.route("/api/parking/dispatch-single-challan", methods=["POST"])
+def api_parking_dispatch_single_challan():
+    """Issues an e-challan for a single violating vehicle."""
+    data = request.json or {}
+    plate = data.get("plate") or "KA-06-UNKNOWN"
+    vtype = data.get("type") or data.get("model") or "car"
+    fine = float(data.get("fine_amount") or 1000.0)
+    street_name = data.get("street_name") or "Tumakuru Urban Narrow Corridor"
+    curb_side = data.get("side") or "RIGHT"
+
+    viol_id, challan_no = log_violation(
+        track_id=None,
+        violation_type="ILLEGAL_SIDE_PARKING",
+        vehicle_type=vtype,
+        license_plate=plate,
+        confidence=float(data.get("confidence") or 0.95),
+        snapshot_path=data.get("crop_url") or "/static/violations/sample_parking_viol.jpg"
+    )
+
+    return jsonify({
+        "status": "success",
+        "challan_number": challan_no,
+        "violation_id": viol_id,
+        "plate": plate,
+        "fine_amount": fine,
+        "curb_side": curb_side,
+        "street_name": street_name
+    })
+
 
 @app.route("/api/parking/upload-image", methods=["POST"])
 def api_parking_upload_image():

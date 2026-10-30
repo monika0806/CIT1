@@ -138,21 +138,110 @@ export default function NarrowStreetParkingPage() {
   // 6. Issue all pending e-challans
   const handleIssueAllChallans = async () => {
     setIsIssuing(true);
+    const violatingVehicles = vehicles.filter(v => v.is_violating);
     try {
       const res = await fetch('/api/parking/issue-challans', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ street_id: selectedStreetId })
+        body: JSON.stringify({ 
+          street_id: selectedStreetId,
+          street_name: street?.name || 'Tumakuru Urban Narrow Corridor',
+          vehicles: violatingVehicles
+        })
       });
       const data = await res.json();
       setChallanResult(data);
-      if (activeMode === 'camera') {
-        fetchCameraAudit(selectedStreetId);
+
+      const challanMap = {};
+      (data.challans || []).forEach(ch => {
+        challanMap[ch.plate] = ch.challan_number;
+        if (ch.vehicle_id) challanMap[ch.vehicle_id] = ch.challan_number;
+      });
+
+      const updateVehList = (list) => (list || []).map(v => {
+        if (v.is_violating) {
+          return {
+            ...v,
+            challan_issued: true,
+            challan_number: challanMap[v.plate] || challanMap[v.id] || `CH-TK-${Date.now()}`,
+            dispatch_status: 'DISPATCHED_TO_RTO'
+          };
+        }
+        return v;
+      });
+
+      if (activeMode === 'upload' && uploadAuditData) {
+        setUploadAuditData(prev => ({
+          ...prev,
+          parked_vehicles: updateVehList(prev.parked_vehicles),
+          carriageway_clearance: {
+            ...prev.carriageway_clearance,
+            alert_desc: `Law enforcement dispatched: ${data.issued_count} E-Challans logged and transmitted to Tumakuru City Police Officer Portal.`,
+            enforcement_dispatched: true
+          }
+        }));
+      } else if (activeMode === 'camera') {
+        if (cameraAuditData) {
+          setCameraAuditData(prev => ({
+            ...prev,
+            parked_vehicles: updateVehList(prev.parked_vehicles),
+            carriageway_clearance: {
+              ...prev.carriageway_clearance,
+              alert_desc: `Law enforcement dispatched: ${data.issued_count} E-Challans logged and transmitted to Tumakuru City Police Officer Portal.`,
+              enforcement_dispatched: true
+            }
+          }));
+        }
       }
     } catch (e) {
       console.error('Error issuing challans:', e);
     } finally {
       setIsIssuing(false);
+    }
+  };
+
+  const handleDispatchSingle = async (veh) => {
+    try {
+      const res = await fetch('/api/parking/dispatch-single-challan', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          plate: veh.plate,
+          type: veh.type || veh.model,
+          fine_amount: veh.fine_amount || 1000,
+          side: veh.side,
+          confidence: veh.confidence,
+          street_name: street?.name || 'Tumakuru Urban Narrow Corridor'
+        })
+      });
+      const data = await res.json();
+      
+      const markSingle = (list) => (list || []).map(v => {
+        if (v.id === veh.id || v.plate === veh.plate) {
+          return {
+            ...v,
+            challan_issued: true,
+            challan_number: data.challan_number,
+            dispatch_status: 'DISPATCHED_TO_RTO'
+          };
+        }
+        return v;
+      });
+
+      if (activeMode === 'upload') {
+        setUploadAuditData(prev => ({ ...prev, parked_vehicles: markSingle(prev.parked_vehicles) }));
+      } else {
+        setCameraAuditData(prev => ({ ...prev, parked_vehicles: markSingle(prev.parked_vehicles) }));
+      }
+
+      setChallanResult({
+        status: 'success',
+        issued_count: 1,
+        total_fine_amount: data.fine_amount || 1000,
+        challans: [data]
+      });
+    } catch (e) {
+      console.error('Single dispatch error:', e);
     }
   };
 
@@ -347,25 +436,49 @@ export default function NarrowStreetParkingPage() {
           </div>
           <button 
             onClick={handleIssueAllChallans}
-            disabled={isIssuing}
+            disabled={isIssuing || vehicles.filter(v => v.is_violating && !v.challan_issued).length === 0}
             className="action-btn"
-            style={{ background: '#ef4444', color: '#fff', borderColor: '#ef4444', fontWeight: 800 }}
+            style={{ 
+              background: vehicles.some(v => v.is_violating && v.challan_issued) && vehicles.filter(v => v.is_violating && !v.challan_issued).length === 0 ? '#10b981' : '#ef4444', 
+              color: '#fff', 
+              borderColor: vehicles.some(v => v.is_violating && v.challan_issued) && vehicles.filter(v => v.is_violating && !v.challan_issued).length === 0 ? '#10b981' : '#ef4444', 
+              fontWeight: 800 
+            }}
           >
-            {isIssuing ? 'Issuing E-Challans...' : '⚡ Issue Auto E-Challans (₹1,000)'}
+            {isIssuing 
+              ? 'Issuing E-Challans...' 
+              : vehicles.some(v => v.is_violating && v.challan_issued) && vehicles.filter(v => v.is_violating && !v.challan_issued).length === 0
+                ? '✅ All E-Challans Dispatched'
+                : `⚡ Issue Auto E-Challans (₹1,000 × ${vehicles.filter(v => v.is_violating && !v.challan_issued).length || 6})`
+            }
           </button>
         </section>
       )}
 
       {/* Challan Issuance Confirmation Modal / Toast */}
       {challanResult && (
-        <div style={{ background: 'rgba(16, 185, 129, 0.15)', border: '1px solid #10b981', padding: '0.85rem 1.25rem', borderRadius: 'var(--radius-md)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ background: 'rgba(16, 185, 129, 0.15)', border: '1px solid #10b981', padding: '1rem 1.25rem', borderRadius: 'var(--radius-md)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem', margin: '0.75rem 0' }}>
           <div>
-            <strong style={{ color: '#10b981' }}>✅ Successfully Issued {challanResult.issued_count} E-Challans:</strong>
-            <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginLeft: '0.5rem' }}>
-              Total ₹{challanResult.total_fine_amount} fine recorded in SQLite database.
-            </span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <span style={{ fontSize: '1.2rem' }}>🚔</span>
+              <strong style={{ color: '#10b981', fontSize: '0.95rem' }}>
+                Successfully Dispatched {challanResult.issued_count} E-Challans to Police Portal!
+              </strong>
+            </div>
+            <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '0.2rem' }}>
+              Total ₹{challanResult.total_fine_amount} recorded in SQLite database. Vehicles marked as dispatched.
+            </div>
           </div>
-          <button onClick={() => setChallanResult(null)} style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '1rem' }}>✕</button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <a 
+              href="/officer" 
+              className="action-btn"
+              style={{ background: 'var(--neon-cyan)', color: '#050811', textDecoration: 'none', fontWeight: 800, fontSize: '0.8rem', padding: '0.4rem 0.85rem' }}
+            >
+              👮 Review in Officer Portal →
+            </a>
+            <button onClick={() => setChallanResult(null)} style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '1.2rem' }}>✕</button>
+          </div>
         </div>
       )}
 
@@ -576,16 +689,22 @@ export default function NarrowStreetParkingPage() {
 
           <button 
             onClick={handleIssueAllChallans}
-            disabled={isIssuing || vehicles.filter(v => v.is_violating).length === 0}
+            disabled={isIssuing || vehicles.filter(v => v.is_violating && !v.challan_issued).length === 0}
             className="action-btn"
             style={{ 
-              background: 'var(--neon-cyan)', 
+              background: vehicles.some(v => v.is_violating && v.challan_issued) && vehicles.filter(v => v.is_violating && !v.challan_issued).length === 0 ? '#10b981' : 'var(--neon-cyan)', 
               color: '#050811', 
-              borderColor: 'var(--neon-cyan)', 
+              borderColor: vehicles.some(v => v.is_violating && v.challan_issued) && vehicles.filter(v => v.is_violating && !v.challan_issued).length === 0 ? '#10b981' : 'var(--neon-cyan)', 
               fontWeight: 800 
             }}
           >
-            <span>⚡</span> Dispatch All Wrong-Side E-Challans
+            <span>⚡</span> 
+            {isIssuing 
+              ? 'Dispatching E-Challans...' 
+              : vehicles.some(v => v.is_violating && v.challan_issued) && vehicles.filter(v => v.is_violating && !v.challan_issued).length === 0
+                ? '✅ All Wrong-Side E-Challans Dispatched'
+                : `Dispatch All Wrong-Side E-Challans (${vehicles.filter(v => v.is_violating && !v.challan_issued).length || 6})`
+            }
           </button>
         </div>
 
@@ -600,6 +719,7 @@ export default function NarrowStreetParkingPage() {
               <th>Compliance Status</th>
               <th>Violation Penalty</th>
               <th>Audit Reason</th>
+              <th style={{ textAlign: 'right' }}>Enforcement Action</th>
             </tr>
           </thead>
           <tbody>
@@ -615,15 +735,38 @@ export default function NarrowStreetParkingPage() {
                 </td>
                 <td className="mono">{v.dwell_mins ? `${v.dwell_mins} mins` : `${(v.confidence * 100).toFixed(0)}% conf`}</td>
                 <td>
-                  <span className={`veh-status-badge ${v.is_violating ? 'illegal' : 'legal'}`}>
-                    {v.is_violating ? 'WRONG-SIDE PARKING' : 'LEGAL (PERMITTED)'}
+                  <span className={`veh-status-badge ${v.challan_issued ? 'legal' : (v.is_violating ? 'illegal' : 'legal')}`} style={{ background: v.challan_issued ? 'rgba(0, 245, 255, 0.15)' : undefined, color: v.challan_issued ? 'var(--neon-cyan)' : undefined, borderColor: v.challan_issued ? 'var(--neon-cyan)' : undefined }}>
+                    {v.challan_issued ? '🚨 E-CHALLAN DISPATCHED' : (v.is_violating ? 'WRONG-SIDE PARKING' : 'LEGAL (PERMITTED)')}
                   </span>
                 </td>
                 <td className="mono" style={{ fontWeight: 800, color: v.is_violating ? '#ef4444' : '#10b981' }}>
                   {v.is_violating ? `₹${v.fine_amount || 1000}` : '₹0'}
                 </td>
                 <td style={{ color: 'var(--text-secondary)', fontSize: '0.74rem' }}>
-                  {v.violation_reason}
+                  {v.challan_number ? (
+                    <span style={{ color: 'var(--neon-cyan)', fontFamily: 'monospace', fontWeight: 700 }}>
+                      Challan #{v.challan_number} (Logged in SQLite)
+                    </span>
+                  ) : v.violation_reason}
+                </td>
+                <td style={{ textAlign: 'right' }}>
+                  {v.challan_issued ? (
+                    <span style={{ fontSize: '0.72rem', color: '#10b981', fontWeight: 800, background: 'rgba(16, 185, 129, 0.1)', padding: '0.2rem 0.5rem', borderRadius: '4px' }}>
+                      SENT TO RTO
+                    </span>
+                  ) : v.is_violating ? (
+                    <button 
+                      onClick={() => handleDispatchSingle(v)}
+                      className="action-btn"
+                      style={{ padding: '0.25rem 0.55rem', fontSize: '0.7rem', color: '#ef4444', borderColor: '#ef4444', fontWeight: 700 }}
+                    >
+                      ⚡ Dispatch
+                    </button>
+                  ) : (
+                    <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                      Legal
+                    </span>
+                  )}
                 </td>
               </tr>
             ))}
