@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: roadpulseai-backend
+    env: python
+    region: singapore
+    plan: free
+    buildCommand: pip install -r requirements-render.txt
+    startCommand: gunicorn "web.app:app" --bind 0.0.0.0:$PORT --workers 1 --timeout 120
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.0
+      - key: RENDER_DEPLOYMENT
+        value: "true"
+      - key: FLASK_ENV
+        value: production

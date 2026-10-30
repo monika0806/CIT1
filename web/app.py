@@ -4,7 +4,6 @@ Flask web server with real-time MJPEG stream, REST API, and WebSocket/SSE teleme
 """
 
 import os
-import cv2
 import time
 import json
 import random
@@ -12,10 +11,26 @@ from datetime import datetime
 from flask import Flask, render_template, Response, jsonify, request, send_from_directory
 from werkzeug.utils import secure_filename
 
-from core.pipeline import MasterTrafficPipeline
+# --- Graceful degradation for cloud deployment (Render, etc.) ---
+# Heavy CV/AI libs are not available on free-tier servers without GPU.
+# API, Database, Green Corridor, and all data endpoints work normally.
+IS_CLOUD = os.environ.get("RENDER_DEPLOYMENT", "false").lower() == "true"
+
+cv2 = None
+MasterTrafficPipeline = None
+narrow_street_analyzer = None
+women_safety_analyzer = None
+
+if not IS_CLOUD:
+    try:
+        import cv2
+        from core.pipeline import MasterTrafficPipeline
+        from core.parking_analyzer import narrow_street_analyzer
+        from core.safety_analyzer import women_safety_analyzer
+    except ImportError as e:
+        print(f"[WARN] CV modules not available: {e}. Running in API-only mode.")
+
 from core.map_simulator import sit_simulator
-from core.parking_analyzer import narrow_street_analyzer
-from core.safety_analyzer import women_safety_analyzer
 from core.green_corridor import GreenCorridorEngine
 from database.db import (
     get_recent_violations, get_statistics, get_challan_details,
