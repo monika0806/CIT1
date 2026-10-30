@@ -501,6 +501,26 @@ def api_safety_corridors():
     """Returns list of monitored street corridors with lighting & safety baseline data."""
     return jsonify(women_safety_analyzer.get_monitored_corridors())
 
+@app.route("/api/safety/tumkur-streets", methods=["GET"])
+def api_safety_tumkur_streets():
+    """
+    Simulates and returns live safety & risk rates for every monitored street in Tumakuru.
+    Updates dynamically every 2-3 minutes, calculating risk rates from pedestrian density,
+    traffic flow, and lighting without requiring manual image uploads.
+    """
+    hour_val = request.args.get("hour")
+    force_refresh = request.args.get("refresh", "false").lower() in ["true", "1", "yes"]
+    try:
+        hour = int(hour_val) if hour_val is not None and hour_val != "" else datetime.now().hour
+    except (ValueError, TypeError):
+        hour = datetime.now().hour
+        
+    result = women_safety_analyzer.simulate_all_tumkur_streets(
+        simulated_hour=hour,
+        force_refresh=force_refresh
+    )
+    return jsonify(result)
+
 @app.route("/api/safety/audit")
 def api_safety_audit():
     """Evaluates safety score of a monitored corridor based on time and simulation parameters."""
@@ -540,8 +560,10 @@ def api_safety_analyze_image():
             return jsonify({"status": "error", "message": f"Sample image {sample_name} not found"}), 404
         save_path = sample_path
     else:
-        # Default sample
-        default_sample = os.path.join(BASE_DIR, "web", "static", "safety_samples", "busy_safe_street.jpg")
+        # Default sample: quiet/empty night street with low pedestrian density
+        default_sample = os.path.join(BASE_DIR, "web", "static", "safety_samples", "empty_road_safety.jpg")
+        if not os.path.exists(default_sample):
+            default_sample = os.path.join(BASE_DIR, "sample_data", "empty_road_safety.jpg")
         if os.path.exists(default_sample):
             save_path = default_sample
         else:
