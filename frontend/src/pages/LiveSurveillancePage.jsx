@@ -439,8 +439,11 @@ export default function LiveSurveillancePage() {
                             <img 
                               src={v.snapshot_path || ''} 
                               alt="Violation Snapshot" 
-                              className="violation-thumb" 
-                              onError={(e) => { e.target.src = '/static/images/placeholder.jpg'; }}
+                              className="violation-thumb"
+                              onError={(e) => { 
+                                e.currentTarget.onerror = null; 
+                                e.currentTarget.src = '/static/images/placeholder.jpg'; 
+                              }}
                             />
                             <span className="zoom-hint">🔍 Expand</span>
                           </div>

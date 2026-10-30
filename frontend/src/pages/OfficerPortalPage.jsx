@@ -387,7 +387,10 @@ export default function OfficerPortalPage() {
                       alt="Thumbnail" 
                       onClick={() => setSelectedViolation(v)}
                       style={{ width: '56px', height: '36px', objectFit: 'cover', borderRadius: '4px', cursor: 'pointer', border: '1px solid var(--border-subtle)' }}
-                      onError={(e) => { e.target.src = '/static/violations/sample_parking_viol.jpg'; }}
+                      onError={(e) => { 
+                        e.currentTarget.onerror = null; 
+                        e.currentTarget.src = '/static/violations/sample_parking_viol.jpg'; 
+                      }}
                     />
                   </td>
                   <td style={{ padding: '0.75rem 1rem', fontFamily: 'monospace', color: 'var(--neon-cyan)', fontWeight: 700 }}>

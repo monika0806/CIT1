@@ -24,7 +24,10 @@ export default function EvidenceModal({ isOpen, onClose, violation, onOpenReceip
             <img 
               src={violation.snapshot_path || ''} 
               alt="Evidence Snapshot" 
-              onError={(e) => { e.target.src = '/static/images/placeholder.jpg'; }}
+              onError={(e) => { 
+                e.currentTarget.onerror = null; 
+                e.currentTarget.src = '/static/images/placeholder.jpg'; 
+              }}
             />
           </div>
 
