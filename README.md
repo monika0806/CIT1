@@ -120,6 +120,17 @@ Each detected violation automatically generates:
 
 ---
 
+## ✅ GitHub Actions
+
+Pull requests and pushes run focused CI workflows:
+- **Frontend CI** installs the locked npm dependencies, runs Oxlint, and builds the Vite app.
+- **Backend CI** checks Python syntax across the backend modules.
+- **Database CI** exercises the SQLite schema and challan/telemetry operations against a temporary database.
+
+SQLite is embedded, so the database workflow does not require a separate database service.
+
+---
+
 ## 🌐 REST API Endpoints
 
 - `GET /video_feed` — MJPEG streaming endpoint for low-latency live camera/video feeds

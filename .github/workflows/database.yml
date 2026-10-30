@@ -1,0 +1,39 @@
+
+name: Database CI
+
+on:
+  push:
+    paths:
+      - "database/**"
+      - "tests/**"
+      - ".github/workflows/database.yml"
+
+  pull_request:
+    paths:
+      - "database/**"
+      - "tests/**"
+      - ".github/workflows/database.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  sqlite:
+    name: Test SQLite schema and operations
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Run database tests
+        run: python -m unittest discover --start-directory tests --pattern "test_database.py" --verbose
