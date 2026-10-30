@@ -7,6 +7,7 @@ import os
 import cv2
 import time
 import json
+import random
 from datetime import datetime
 from flask import Flask, render_template, Response, jsonify, request, send_from_directory
 from werkzeug.utils import secure_filename
@@ -17,7 +18,7 @@ from core.parking_analyzer import narrow_street_analyzer
 from core.safety_analyzer import women_safety_analyzer
 from database.db import (
     get_recent_violations, get_statistics, get_challan_details,
-    search_challans, pay_challan, get_connection
+    search_challans, pay_challan, get_connection, log_sos_dispatch
 )
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -612,30 +613,59 @@ def api_safety_analyze_image():
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
 
-@app.route("/api/safety/sos-dispatch", methods=["POST"])
+@app.route("/api/safety/sos-dispatch", methods=["GET", "POST"])
 def api_safety_sos_dispatch():
     """Simulates immediate police patrol unit (Tumakuru Pink Patrol) dispatch for women in danger."""
-    data = request.json or {}
-    corridor_name = data.get("corridor_name", "Unknown Tumakuru Corridor")
-    lat = data.get("lat", 13.3276)
-    lng = data.get("lng", 77.1259)
+    data = {}
+    if request.is_json:
+        data = request.json or {}
+    elif request.form:
+        data = request.form.to_dict()
+    elif request.args:
+        data = request.args.to_dict()
+
+    corridor_name = data.get("corridor_name") or data.get("name") or "SIT Tumakuru Safe Corridor"
+    try:
+        lat = float(data.get("lat", 13.3276))
+        lng = float(data.get("lng", 77.1259))
+    except (ValueError, TypeError):
+        lat, lng = 13.3276, 77.1259
     
     dispatch_id = f"SOS-TK-{int(time.time()*1000)}"
+    unit_assigned = "Tumakuru Pink Patrol Unit #02"
+    patrol_vehicle = "Mahindra Bolero Emergency Response (KA-06-G-1102)"
+    officer_in_charge = "PSI Rajeshwari K. / ASI Shailaja M. (Tumakuru South Police)"
+    eta_mins = random.randint(2, 4)
+
+    # Persist in DB
+    log_sos_dispatch(
+        dispatch_id=dispatch_id,
+        corridor=corridor_name,
+        lat=lat,
+        lng=lng,
+        unit_assigned=unit_assigned,
+        patrol_vehicle=patrol_vehicle,
+        officer_in_charge=officer_in_charge,
+        eta_mins=eta_mins
+    )
+
     return jsonify({
         "status": "success",
         "dispatch_id": dispatch_id,
         "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-        "unit_assigned": "Tumakuru Pink Patrol Unit #04",
-        "eta_mins": 3,
-        "patrol_vehicle": "Mahindra Bolero Emergency Response Vehicle (KA-06-G-112)",
-        "officer_in_charge": "ASI Shailaja M. (Tumakuru City Police)",
+        "unit_assigned": unit_assigned,
+        "eta_mins": eta_mins,
+        "eta_seconds": eta_mins * 60,
+        "patrol_vehicle": patrol_vehicle,
+        "officer_in_charge": officer_in_charge,
         "contact_helpline": "Dial 112 / 1091",
+        "corridor": corridor_name,
         "location": {
             "corridor": corridor_name,
             "lat": lat,
             "lng": lng
         },
-        "message": f"Emergency patrol dispatched to {corridor_name}. High priority beacon activated."
+        "message": f"Emergency Pink Patrol unit dispatched to {corridor_name}. High-priority siren and live GPS telemetry activated."
     })
 
 @app.route("/api/upload", methods=["POST"])

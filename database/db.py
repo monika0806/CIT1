@@ -67,10 +67,26 @@ def init_db():
         violation_id INTEGER,
         license_plate TEXT,
         violation_type TEXT,
-        fine_amount REAL,
         issued_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         status TEXT DEFAULT 'ISSUED',
         FOREIGN KEY(violation_id) REFERENCES violations(id)
+    );
+    """)
+    
+    # Women Safety Pink Patrol SOS Dispatches table
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS sos_dispatches (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        dispatch_id TEXT UNIQUE,
+        timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+        corridor TEXT,
+        lat REAL,
+        lng REAL,
+        unit_assigned TEXT,
+        patrol_vehicle TEXT,
+        officer_in_charge TEXT,
+        eta_mins INTEGER,
+        status TEXT DEFAULT 'DISPATCHED'
     );
     """)
     
@@ -262,3 +278,33 @@ def get_statistics():
     except Exception as e:
         print(f"[DB Error get_statistics]: {e}")
         return {"total_detected": 0, "total_violations": 0, "vehicle_types": {}, "violation_types": {}}
+
+def log_sos_dispatch(dispatch_id, corridor, lat, lng, unit_assigned, patrol_vehicle, officer_in_charge, eta_mins):
+    try:
+        conn = get_connection()
+        cursor = conn.cursor()
+        cursor.execute("""
+            INSERT INTO sos_dispatches (dispatch_id, corridor, lat, lng, unit_assigned, patrol_vehicle, officer_in_charge, eta_mins, status)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'DISPATCHED')
+        """, (dispatch_id, corridor, float(lat), float(lng), unit_assigned, patrol_vehicle, officer_in_charge, int(eta_mins)))
+        conn.commit()
+        conn.close()
+        return True
+    except Exception as e:
+        print(f"[DB Error log_sos_dispatch]: {e}")
+        return False
+
+def get_recent_sos_dispatches(limit=10):
+    try:
+        conn = get_connection()
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT * FROM sos_dispatches ORDER BY id DESC LIMIT ?
+        """, (limit,))
+        rows = [dict(row) for row in cursor.fetchall()]
+        conn.close()
+        return rows
+    except Exception as e:
+        print(f"[DB Error get_recent_sos_dispatches]: {e}")
+        return []
+
