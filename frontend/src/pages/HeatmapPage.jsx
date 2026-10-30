@@ -1,6 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
 import './HeatmapPage.css';
+
+if (typeof window !== 'undefined') {
+  window.L = L;
+}
 
 export default function HeatmapPage() {
   const [telemetryData, setTelemetryData] = useState(null);
@@ -19,10 +25,10 @@ export default function HeatmapPage() {
 
   // 1. Initialize Leaflet Map
   useEffect(() => {
-    if (typeof window.L === 'undefined' || !mapContainerRef.current) return;
+    if (!mapContainerRef.current) return;
 
     if (!mapInstanceRef.current) {
-      const map = window.L.map(mapContainerRef.current, {
+      const map = L.map(mapContainerRef.current, {
         center: [13.3280, 77.1265],
         zoom: 15,
         zoomControl: true,
@@ -30,16 +36,25 @@ export default function HeatmapPage() {
       });
 
       // Dark CartoDB Tiles (Zero API Key required)
-      window.L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
         maxZoom: 19,
         subdomains: 'abcd'
       }).addTo(map);
 
-      layersRef.current.segments = window.L.featureGroup().addTo(map);
-      layersRef.current.junctions = window.L.featureGroup().addTo(map);
+      layersRef.current.segments = L.featureGroup().addTo(map);
+      layersRef.current.junctions = L.featureGroup().addTo(map);
 
       mapInstanceRef.current = map;
+
+      // Ensure proper sizing after layout paint
+      setTimeout(() => {
+        map.invalidateSize();
+      }, 200);
     }
+
+    return () => {
+      // Do not destroy map eagerly on quick re-renders
+    };
   }, []);
 
   // 2. Poll GIS Telemetry from Flask (/api/map/telemetry)
@@ -50,7 +65,6 @@ export default function HeatmapPage() {
         if (!res.ok) return;
         const data = await res.json();
         setTelemetryData(data);
-        renderGISData(data);
       } catch (e) {
         console.warn('GIS telemetry poll error:', e);
       }
@@ -61,11 +75,18 @@ export default function HeatmapPage() {
     return () => clearInterval(timer);
   }, []);
 
-  // 3. Render Segments, Junctions & Live Camera Beacon
+  // 3. Render whenever telemetry data or map is ready
+  useEffect(() => {
+    if (mapInstanceRef.current && telemetryData) {
+      renderGISData(telemetryData);
+    }
+  }, [telemetryData]);
+
+  // 4. Render Segments, Junctions & Live Camera Beacon
   const renderGISData = (data) => {
     if (!mapInstanceRef.current || !data) return;
     const map = mapInstanceRef.current;
-    const L = window.L;
+    map.invalidateSize();
 
     // A. Render Road Segments
     if (layersRef.current.segments) {

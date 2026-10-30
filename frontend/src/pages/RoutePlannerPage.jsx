@@ -1,6 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
 import './RoutePlannerPage.css';
+
+if (typeof window !== 'undefined') {
+  window.L = L;
+}
 
 export default function RoutePlannerPage() {
   const [searchParams] = useSearchParams();
@@ -36,22 +42,27 @@ export default function RoutePlannerPage() {
 
   // 2. Initialize Leaflet Map
   useEffect(() => {
-    if (typeof window.L === 'undefined' || !mapContainerRef.current) return;
+    if (!mapContainerRef.current) return;
 
     if (!mapInstanceRef.current) {
-      const map = window.L.map(mapContainerRef.current, {
+      const map = L.map(mapContainerRef.current, {
         center: [13.3300, 77.1265],
         zoom: 14,
         zoomControl: true,
         attributionControl: false
       });
 
-      window.L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
         maxZoom: 19,
         subdomains: 'abcd'
       }).addTo(map);
 
       mapInstanceRef.current = map;
+
+      // Ensure proper sizing after layout paint
+      setTimeout(() => {
+        map.invalidateSize();
+      }, 200);
     }
   }, []);
 
@@ -79,10 +90,16 @@ export default function RoutePlannerPage() {
     planRoute();
   }, [origin, destination]);
 
+  useEffect(() => {
+    if (mapInstanceRef.current && routePlan) {
+      renderRoutesOnMap(routePlan, selectedRouteIndex);
+    }
+  }, [routePlan, selectedRouteIndex]);
+
   const renderRoutesOnMap = (plan, activeIdx) => {
     if (!mapInstanceRef.current || !plan) return;
     const map = mapInstanceRef.current;
-    const L = window.L;
+    map.invalidateSize();
 
     // Clear previous layers
     routeLayersRef.current.polylines.forEach(p => map.removeLayer(p));

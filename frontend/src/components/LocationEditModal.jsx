@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
 import './LocationEditModal.css';
 
 const PRESETS = [
@@ -39,23 +41,23 @@ export default function LocationEditModal({ isOpen, onClose, currentLocation, on
     if (!isOpen) return;
 
     const timer = setTimeout(() => {
-      if (typeof window.L === 'undefined' || !mapContainerRef.current) return;
+      if (!mapContainerRef.current) return;
 
       const currentLat = parseFloat(lat) || 13.3276;
       const currentLng = parseFloat(lng) || 77.1259;
 
       if (!mapInstanceRef.current) {
-        const map = window.L.map(mapContainerRef.current, {
+        const map = L.map(mapContainerRef.current, {
           center: [currentLat, currentLng],
           zoom: 15,
           attributionControl: false
         });
 
-        window.L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
           maxZoom: 19
         }).addTo(map);
 
-        const marker = window.L.marker([currentLat, currentLng], { draggable: true }).addTo(map);
+        const marker = L.marker([currentLat, currentLng], { draggable: true }).addTo(map);
 
         marker.on('dragend', (e) => {
           const pos = e.target.getLatLng();
