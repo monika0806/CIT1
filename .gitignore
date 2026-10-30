@@ -1,0 +1,36 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Environments
+.env
+.venv
+env/
+venv/
+ENV/
+
+# Cloned External Reference Repositories (Not required for deployment)
+repos/
+
+# Node & Frontend dependencies
+node_modules/
+frontend/node_modules/
+frontend/dist/
+
+# Operating System Files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Large processed video files
+output_annotated.mp4
+sample_annotated_preview.mp4
+
+# SQLite Database local state
+*.db-journal

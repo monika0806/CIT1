@@ -344,9 +344,11 @@ def select_source():
     if source == "sample1":
         video_source_path = os.path.join(SAMPLE_FOLDER, "traffic.mp4")
     elif source == "sample2":
-        path2 = os.path.join(BASE_DIR, "repos", "Smart-Traffic-Management-System", "video", "traffic2.mp4")
+        path2 = os.path.join(SAMPLE_FOLDER, "traffic2.mp4")
         if os.path.exists(path2):
             video_source_path = path2
+        else:
+            video_source_path = os.path.join(SAMPLE_FOLDER, "traffic.mp4")
     elif source == "webcam":
         video_source_path = 0
     elif source.startswith("upload:"):
