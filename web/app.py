@@ -447,6 +447,48 @@ def api_parking_issue_challans():
     result = narrow_street_analyzer.issue_challan_for_violating_vehicles(street_id)
     return jsonify(result)
 
+@app.route("/api/parking/upload-image", methods=["POST"])
+def api_parking_upload_image():
+    """
+    Accepts an uploaded road/street image (or preset sample) and runs YOLOv8
+    to detect parked vehicles, classify left vs right curbs, and flag wrong-side parking.
+    """
+    legal_side = request.form.get("legal_side") or (request.json.get("legal_side") if request.is_json else None) or "LEFT"
+    nominal_width_m = float(request.form.get("nominal_width_m") or (request.json.get("nominal_width_m") if request.is_json else None) or 6.4)
+    street_name = request.form.get("street_name") or (request.json.get("street_name") if request.is_json else None) or "Uploaded Narrow Corridor"
+    sample_name = request.form.get("sample_name") or (request.json.get("sample_name") if request.is_json else None)
+    
+    if "file" in request.files and request.files["file"].filename != "":
+        file = request.files["file"]
+        filename = secure_filename(file.filename)
+        save_path = os.path.join(app.config["UPLOAD_FOLDER"], f"parking_{int(time.time()*1000)}_{filename}")
+        file.save(save_path)
+    elif sample_name:
+        sample_path = os.path.join(BASE_DIR, "web", "static", "parking_samples", secure_filename(sample_name))
+        if not os.path.exists(sample_path):
+            sample_path = os.path.join(BASE_DIR, "sample_data", secure_filename(sample_name))
+        if not os.path.exists(sample_path):
+            return jsonify({"status": "error", "message": f"Sample image {sample_name} not found"}), 404
+        save_path = sample_path
+    else:
+        # Fallback to default preset sample
+        default_sample = os.path.join(BASE_DIR, "web", "static", "parking_samples", "narrow_street_sample.jpg")
+        if os.path.exists(default_sample):
+            save_path = default_sample
+        else:
+            return jsonify({"status": "error", "message": "No image file provided"}), 400
+
+    try:
+        result = narrow_street_analyzer.analyze_uploaded_image(
+            image_path=save_path,
+            legal_side=legal_side,
+            nominal_width_m=nominal_width_m,
+            street_name=street_name
+        )
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
+
 @app.route("/api/upload", methods=["POST"])
 def upload_file():
     global video_source_path, current_telemetry, active_camera_info
