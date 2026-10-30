@@ -3,6 +3,17 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import './WomenSafetyPage.css';
 
+const formatPedestrianSub = (text) => {
+  if (!text) return 'Active Flow';
+  if (text.includes('Active Natural Guardianship')) return 'Active Guardianship';
+  if (text.includes('Zero Eyes')) return 'Zero Eyes on Street';
+  if (text.includes('Solitary')) return 'Solitary & Isolated';
+  if (text.includes('Sparse Surveillance')) return 'Sparse Surveillance';
+  if (text.includes('High Footfall')) return 'High Footfall';
+  if (text.includes(' - ')) return text.split(' - ')[1].trim();
+  return text;
+};
+
 export default function WomenSafetyPage() {
   // Navigation Tabs: 'monitor' (Live Tumakuru Streets) vs 'route' (Source -> Destination SafeWalk Planner)
   const [activeTab, setActiveTab] = useState('monitor');
@@ -1002,28 +1013,28 @@ export default function WomenSafetyPage() {
                   </div>
 
                   <div className="telemetry-chips-grid">
-                    <div className="telem-chip">
+                    <div className="telem-chip" title={`Pedestrian Density: ${street.pedestrians_count} People (${street.pedestrian_density_text})`}>
                       <span className="telem-icon">👥</span>
                       <div className="telem-content">
-                        <span className="telem-label">Pedestrian Density</span>
+                        <span className="telem-label">Pedestrians</span>
                         <strong className="telem-val">{street.pedestrians_count} People</strong>
-                        <span className="telem-sub">{street.pedestrian_density_text}</span>
+                        <span className="telem-sub">{formatPedestrianSub(street.pedestrian_density_text)}</span>
                       </div>
                     </div>
 
-                    <div className="telem-chip">
+                    <div className="telem-chip" title={`Traffic Density: ${street.vehicles_flow_per_min} Veh/min (${street.traffic_flow_level} Transit Flow)`}>
                       <span className="telem-icon">🚗</span>
                       <div className="telem-content">
-                        <span className="telem-label">Traffic Density</span>
+                        <span className="telem-label">Traffic Flow</span>
                         <strong className="telem-val">{street.vehicles_flow_per_min} Veh/min</strong>
                         <span className="telem-sub">{street.traffic_flow_level} Transit Flow</span>
                       </div>
                     </div>
 
-                    <div className="telem-chip">
+                    <div className="telem-chip" title={`Lighting Status: ${street.lighting.luminance_value} Lumens (${street.lighting.description})`}>
                       <span className="telem-icon">💡</span>
                       <div className="telem-content">
-                        <span className="telem-label">Lighting Status</span>
+                        <span className="telem-label">Lighting</span>
                         <strong className="telem-val" style={{ color: street.lighting.quality === 'DARK_DEADZONE' ? '#ef4444' : '#10b981' }}>
                           {street.lighting.luminance_value} Lumens
                         </strong>
@@ -1031,7 +1042,7 @@ export default function WomenSafetyPage() {
                       </div>
                     </div>
 
-                    <div className="telem-chip">
+                    <div className="telem-chip" title={`Pink Patrol: ETA ${street.security.pink_patrol_eta_mins} Mins (Police Booth ${street.security.police_booth_distance_m}m)`}>
                       <span className="telem-icon">🚓</span>
                       <div className="telem-content">
                         <span className="telem-label">Pink Patrol</span>
