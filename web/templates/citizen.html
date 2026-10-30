@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Citizen E-Challan Services & Fine Settlement Portal</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;700&family=Outfit:wght@600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
+    <script>
+        (function() {
+            const savedTheme = localStorage.getItem('omnitraffic_theme') || 'dark';
+            document.documentElement.setAttribute('data-theme', savedTheme);
+        })();
+    </script>
+    <style>
+        .citizen-hero {
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, rgba(59, 130, 246, 0.05) 100%);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-xl);
+            padding: 2.2rem 2rem;
+            margin-bottom: 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1.5rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.03);
+        }
+        .citizen-badge {
+            background: rgba(16, 185, 129, 0.15);
+            border: 1px solid rgba(16, 185, 129, 0.35);
+            color: var(--neon-emerald);
+            font-size: 0.78rem;
+            font-weight: 700;
+            padding: 0.35rem 0.85rem;
+            border-radius: 999px;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            margin-bottom: 0.75rem;
+        }
+        .portal-switcher {
+            display: flex;
+            gap: 0.5rem;
+        }
+        .portal-btn {
+            background: var(--bg-surface);
+            border: 1px solid var(--border-subtle);
+            color: var(--text-secondary);
+            padding: 0.45rem 0.9rem;
+            border-radius: var(--radius-sm);
+            font-size: 0.78rem;
+            font-weight: 600;
+            text-decoration: none;
+            transition: var(--transition-fast);
+        }
+        .portal-btn:hover, .portal-btn.active {
+            background: rgba(16, 185, 129, 0.15);
+            border-color: var(--neon-emerald);
+            color: var(--neon-emerald);
+        }
+        .search-card {
+            background: var(--bg-surface);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-xl);
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 12px 36px rgba(0, 0, 0, 0.05);
+        }
+        .search-form {
+            display: flex;
+            gap: 0.85rem;
+            margin-top: 1rem;
+            flex-wrap: wrap;
+        }
+        .search-input-wrap {
+            flex: 1;
+            min-width: 280px;
+            position: relative;
+        }
+        .search-input-wrap input {
+            width: 100%;
+            padding: 0.85rem 1.2rem;
+            border-radius: var(--radius-md);
+            border: 2px solid var(--border-subtle);
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            font-size: 1rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            outline: none;
+            transition: var(--transition-fast);
+        }
+        .search-input-wrap input:focus {
+            border-color: var(--neon-emerald);
+            box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);
+        }
+        .submit-btn {
+            background: #10b981;
+            color: #ffffff;
+            border: none;
+            padding: 0.85rem 1.8rem;
+            border-radius: var(--radius-md);
+            font-weight: 700;
+            font-size: 0.95rem;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: var(--transition-fast);
+        }
+        .submit-btn:hover {
+            background: #059669;
+            transform: translateY(-1px);
+        }
+        .quick-chips {
+            display: flex;
+            gap: 0.6rem;
+            margin-top: 1rem;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .chip {
+            background: rgba(0, 0, 0, 0.04);
+            border: 1px solid var(--border-subtle);
+            padding: 0.25rem 0.65rem;
+            border-radius: 999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            cursor: pointer;
+            color: var(--text-secondary);
+            font-family: 'JetBrains Mono', monospace;
+        }
+        .chip:hover {
+            border-color: var(--neon-emerald);
+            color: var(--neon-emerald);
+            background: rgba(16, 185, 129, 0.08);
+        }
+        .results-container {
+            display: flex;
+            flex-direction: column;
+            gap: 1.25rem;
+        }
+        .challan-card {
+            background: var(--bg-surface);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-lg);
+            padding: 1.5rem;
+            display: grid;
+            grid-template-columns: 140px 1fr auto;
+            gap: 1.5rem;
+            align-items: center;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+            transition: var(--transition-fast);
+        }
+        .challan-card:hover {
+            border-color: rgba(16, 185, 129, 0.4);
+            transform: translateY(-2px);
+        }
+        @media (max-width: 768px) {
+            .challan-card {
+                grid-template-columns: 1fr;
+            }
+        }
+        .challan-thumb {
+            width: 140px;
+            height: 100px;
+            border-radius: var(--radius-md);
+            object-fit: cover;
+            border: 1px solid var(--border-subtle);
+            background: #111;
+        }
+        .challan-info {
+            display: flex;
+            flex-direction: column;
+            gap: 0.35rem;
+        }
+        .challan-plate-badge {
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 700;
+            font-size: 0.95rem;
+            background: #fef08a;
+            color: #854d0e;
+            padding: 0.15rem 0.55rem;
+            border-radius: 4px;
+            border: 1px solid #ca8a04;
+            display: inline-block;
+            width: fit-content;
+        }
+        .challan-actions {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            align-items: flex-end;
+        }
+        .pay-btn {
+            background: #10b981;
+            color: #fff;
+            border: none;
+            padding: 0.55rem 1.2rem;
+            border-radius: var(--radius-sm);
+            font-weight: 700;
+            font-size: 0.85rem;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+        .pay-btn:hover {
+            background: #059669;
+        }
+        .receipt-btn {
+            background: #0f1e36;
+            color: #fff;
+            border: none;
+            padding: 0.55rem 1.2rem;
+            border-radius: var(--radius-sm);
+            font-weight: 700;
+            font-size: 0.85rem;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+        .receipt-btn:hover {
+            background: #1e3a8a;
+        }
+        .status-badge {
+            font-size: 0.72rem;
+            font-weight: 700;
+            padding: 0.25rem 0.65rem;
+            border-radius: 999px;
+            display: inline-block;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        .status-badge.paid {
+            background: #dcfce7;
+            color: #15803d;
+            border: 1px solid #86efac;
+        }
+        .status-badge.pending {
+            background: #fee2e2;
+            color: #b91c1c;
+            border: 1px solid #fca5a5;
+        }
+
+        /* Payment Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(8px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+        }
+        .modal-card {
+            background: #ffffff;
+            border-radius: var(--radius-xl);
+            width: 100%;
+            max-width: 480px;
+            padding: 2rem;
+            box-shadow: 0 25px 60px rgba(0, 0, 0, 0.25);
+            text-align: center;
+            position: relative;
+        }
+        .close-modal {
+            position: absolute;
+            top: 1rem;
+            right: 1.2rem;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: #64748b;
+        }
+        .qr-placeholder {
+            width: 180px;
+            height: 180px;
+            margin: 1.25rem auto;
+            background: #f8fafc;
+            border: 2px dashed #cbd5e1;
+            border-radius: var(--radius-md);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+            color: #64748b;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Header Navigation -->
+    <header class="navbar">
+        <div class="brand">
+            <div class="brand-logo">
+                <span class="logo-core" style="background: var(--neon-emerald);"></span>
+                <span class="logo-ring" style="border-color: rgba(16, 185, 129, 0.5);"></span>
+            </div>
+            <div class="brand-text">
+                <div class="brand-title">
+                    <span>CITIZEN PARIVAHAN</span>
+                    <span class="brand-tag" style="background: rgba(16, 185, 129, 0.15); color: var(--neon-emerald); border-color: rgba(16, 185, 129, 0.3);">E-GOVERNANCE</span>
+                </div>
+                <div class="brand-sub">National E-Challan Grievance & Fine Payment Portal</div>
+            </div>
+        </div>
+
+        <div style="display: flex; align-items: center; gap: 0.65rem;">
+            <div class="portal-switcher">
+                <a href="/" class="portal-btn"><span>📡</span> Live Feed</a>
+                <a href="/officer" class="portal-btn"><span>🛡️</span> Officer Portal</a>
+                <a href="/citizen" class="portal-btn active"><span>👤</span> Citizen Portal</a>
+                <a href="/map" class="portal-btn"><span>🗺️</span> GIS Map</a>
+                <a href="/routes" class="portal-btn"><span>🧭</span> Route Planner</a>
+            </div>
+            <button class="theme-toggle-btn" id="theme-toggle-btn" title="Toggle Light / Dark Mode">
+                <span id="theme-icon">☀️</span>
+                <span id="theme-text">Theme</span>
+            </button>
+        </div>
+    </header>
+
+    <main class="dashboard-container">
+        <!-- Hero Banner -->
+        <section class="citizen-hero">
+            <div>
+                <span class="citizen-badge">🏛️ Certified Government Public Service</span>
+                <h1 style="font-size: 1.8rem; font-weight: 800; color: var(--text-pure); margin-bottom: 0.4rem;">
+                    Citizen E-Challan Inquiry & Instant Settlement
+                </h1>
+                <p style="color: var(--text-secondary); font-size: 0.9rem; max-width: 600px;">
+                    Search your vehicle registration number to inspect AI-detected traffic citations, view photographic evidence, pay compounded fines online, and download certified legal receipts.
+                </p>
+            </div>
+            <div style="text-align: right;">
+                <div style="font-size: 0.8rem; color: var(--text-muted);">Standard Fine Settlement Window</div>
+                <div style="font-size: 1.2rem; font-weight: 700; color: var(--neon-emerald); font-family: 'JetBrains Mono', monospace;">15 Calendar Days</div>
+            </div>
+        </section>
+
+        <!-- Search Card -->
+        <section class="search-card">
+            <h2 style="font-size: 1.15rem; font-weight: 700; color: var(--text-pure);">
+                🔍 Check Vehicle Challan Status
+            </h2>
+            <p style="font-size: 0.82rem; color: var(--text-secondary); margin-top: 0.2rem;">
+                Enter your Vehicle Registration (e.g., DL8CAF5030, MH02CB1234) or Challan Reference ID:
+            </p>
+
+            <form class="search-form" id="challan-search-form" onsubmit="event.preventDefault(); performSearch();">
+                <div class="search-input-wrap">
+                    <input type="text" id="plate-search-input" placeholder="e.g. DL8CAF5030 or ECH-2026..." value="{{ query or '' }}" autofocus>
+                </div>
+                <button type="submit" class="submit-btn">
+                    <span>🔎</span> Check Challans
+                </button>
+            </form>
+
+            <div class="quick-chips">
+                <span style="font-size: 0.78rem; font-weight: 600; color: var(--text-muted);">Quick Sample Plates:</span>
+                <span class="chip" onclick="searchSample('DL8CAF5030')">DL8CAF5030</span>
+                <span class="chip" onclick="searchSample('MH12DE1433')">MH12DE1433</span>
+                <span class="chip" onclick="searchSample('KA05MN8890')">KA05MN8890</span>
+                <span class="chip" onclick="searchSample('ALL')">View All Violations</span>
+            </div>
+        </section>
+
+        <!-- Search Results List -->
+        <section class="results-container" id="results-deck">
+            {% if challans %}
+                {% for c in challans %}
+                <div class="challan-card" id="card-{{ c.id }}">
+                    <img src="{{ c.snapshot_path }}" class="challan-thumb" alt="Evidence" onerror="this.src='/static/violations/default.jpg'">
+                    <div class="challan-info">
+                        <div style="display: flex; gap: 0.6rem; align-items: center;">
+                            <span class="challan-plate-badge">{{ c.license_plate }}</span>
+                            <span class="status-badge {{ 'paid' if c.status == 'PAID' else 'pending' }}">
+                                {{ 'PAID • SETTLED' if c.status == 'PAID' else 'PAYMENT PENDING' }}
+                            </span>
+                        </div>
+                        <div style="font-size: 1rem; font-weight: 700; color: var(--text-pure); margin-top: 0.3rem;">
+                            {{ c.violation_type | replace('_', ' ') }}
+                        </div>
+                        <div style="font-size: 0.8rem; color: var(--text-muted);">
+                            <span>Reference: <strong class="mono">{{ c.challan_number }}</strong></span> • 
+                            <span>Issued: {{ c.issued_at or c.violation_time }}</span>
+                        </div>
+                        <div style="font-size: 0.82rem; color: var(--text-secondary); margin-top: 0.2rem;">
+                            Vehicle Type: <strong>{{ (c.vehicle_type or 'Vehicle') | capitalize }}</strong> | Sector: <strong>Highway CAM-01</strong>
+                        </div>
+                    </div>
+                    <div class="challan-actions">
+                        <div style="font-family: 'JetBrains Mono', monospace; font-size: 1.35rem; font-weight: 800; color: var(--text-pure);">
+                            ₹{{ "{:,.0f}".format(c.fine_amount) if c.fine_amount else "1,000" }}
+                        </div>
+                        {% if c.status != 'PAID' %}
+                            <button class="pay-btn" onclick="openPaymentModal('{{ c.id }}', '{{ c.challan_number }}', '{{ c.fine_amount or 1000 }}', '{{ c.license_plate }}')">
+                                <span>💳</span> Pay Fine Now
+                            </button>
+                        {% endif %}
+                        <a href="/receipt/{{ c.id }}" target="_blank" class="receipt-btn">
+                            <span>🖨️</span> Legal Receipt
+                        </a>
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div style="background: var(--bg-surface); border: 1px dashed var(--border-subtle); border-radius: var(--radius-lg); padding: 3rem 1.5rem; text-align: center;">
+                    <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">🛡️</div>
+                    <h3 style="color: var(--text-pure); font-size: 1.1rem; font-weight: 700;">No Pending Traffic Fines Found</h3>
+                    <p style="color: var(--text-secondary); font-size: 0.85rem; max-width: 450px; margin: 0.4rem auto;">
+                        Enter a license plate or select a sample registration above to inspect camera citations and verify your legal standing.
+                    </p>
+                </div>
+            {% endif %}
+        </section>
+
+        <!-- Citizen Traffic Safety Guidelines Card -->
+        <section style="margin-top: 2.5rem; background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: 1.8rem;">
+            <h3 style="font-size: 1rem; font-weight: 700; color: var(--text-pure); margin-bottom: 0.8rem;">
+                📜 Motor Vehicles Act (Statutory Schedule of Penalties)
+            </h3>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; font-size: 0.82rem;">
+                <div style="border-left: 3px solid #f59e0b; padding-left: 0.8rem;">
+                    <strong>No Protective Helmet</strong>
+                    <div style="color: var(--text-muted);">Section 129 / 194D • ₹1,000 fine + 3-month license disqualification</div>
+                </div>
+                <div style="border-left: 3px solid #ff0055; padding-left: 0.8rem;">
+                    <strong>Triple Riding (2-Wheeler)</strong>
+                    <div style="color: var(--text-muted);">Section 128 / 194C • ₹1,500 fine</div>
+                </div>
+                <div style="border-left: 3px solid #ef4444; padding-left: 0.8rem;">
+                    <strong>Wrong-Way / Dangerous Driving</strong>
+                    <div style="color: var(--text-muted);">Section 184 • ₹2,000 – ₹5,000 fine</div>
+                </div>
+                <div style="border-left: 3px solid #3b82f6; padding-left: 0.8rem;">
+                    <strong>Online Digital Dispute</strong>
+                    <div style="color: var(--text-muted);">Section 134 • 15 days window to dispute false positive evidence</div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Payment Simulation Modal -->
+    <div class="modal-overlay" id="pay-modal">
+        <div class="modal-card">
+            <span class="close-modal" onclick="closePaymentModal()">&times;</span>
+            <div style="font-size: 2.2rem; margin-bottom: 0.3rem;">💳</div>
+            <h3 style="font-size: 1.25rem; font-weight: 800; color: #0f1e36;">Official Payment Gateway</h3>
+            <div style="font-size: 0.8rem; color: #64748b; margin-bottom: 1rem;">
+                Bharat Bill Payment System (BBPS) / Unified Payments Interface
+            </div>
+
+            <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 0.9rem; text-align: left; font-size: 0.82rem; margin-bottom: 1rem;">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 0.3rem;">
+                    <span style="color: #64748b;">Challan No:</span>
+                    <strong class="mono" id="modal-challan-no">--</strong>
+                </div>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 0.3rem;">
+                    <span style="color: #64748b;">Vehicle Plate:</span>
+                    <strong class="mono" id="modal-plate-no">--</strong>
+                </div>
+                <div style="display: flex; justify-content: space-between; border-top: 1px dashed #cbd5e1; padding-top: 0.4rem; font-size: 0.95rem;">
+                    <span style="font-weight: 700; color: #0f1e36;">Total Amount Payable:</span>
+                    <strong style="color: #10b981; font-family: 'JetBrains Mono', monospace;" id="modal-amount">₹0</strong>
+                </div>
+            </div>
+
+            <div class="qr-placeholder">
+                <span style="font-size: 2rem;">📲</span>
+                <span style="font-weight: 700; margin-top: 0.4rem;">Scan UPI QR Code</span>
+                <span style="font-size: 0.7rem; color: #94a3b8;">BHIM, Google Pay, PhonePe, Paytm</span>
+            </div>
+
+            <div style="display: flex; gap: 0.6rem; justify-content: center; margin-top: 1.2rem;">
+                <button class="submit-btn" style="width: 100%; justify-content: center;" id="confirm-pay-btn" onclick="executePayment()">
+                    <span>✓</span> Confirm & Pay Fine
+                </button>
+            </div>
+            <div style="font-size: 0.72rem; color: #94a3b8; margin-top: 0.75rem;">
+                🔒 256-Bit SSL Encrypted Public Treasury Account Settlement
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentPayingId = null;
+
+        function searchSample(plate) {
+            if (plate === 'ALL') {
+                window.location.href = '/citizen?q=all';
+            } else {
+                document.getElementById('plate-search-input').value = plate;
+                window.location.href = '/citizen?q=' + encodeURIComponent(plate);
+            }
+        }
+
+        function performSearch() {
+            const val = document.getElementById('plate-search-input').value.trim();
+            if (val) {
+                window.location.href = '/citizen?q=' + encodeURIComponent(val);
+            } else {
+                window.location.href = '/citizen';
+            }
+        }
+
+        function openPaymentModal(id, challanNo, amount, plate) {
+            currentPayingId = id;
+            document.getElementById('modal-challan-no').innerText = challanNo;
+            document.getElementById('modal-plate-no').innerText = plate;
+            document.getElementById('modal-amount').innerText = '₹' + Number(amount).toLocaleString();
+            document.getElementById('pay-modal').style.display = 'flex';
+        }
+
+        function closePaymentModal() {
+            document.getElementById('pay-modal').style.display = 'none';
+        }
+
+        async function executePayment() {
+            if (!currentPayingId) return;
+            const btn = document.getElementById('confirm-pay-btn');
+            btn.innerHTML = '<span>⏳</span> Processing Settlement...';
+            btn.disabled = true;
+
+            try {
+                const res = await fetch('/api/pay_challan', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ challan_id: currentPayingId })
+                });
+                const data = await res.json();
+                if (data.status === 'success') {
+                    alert('✅ Fine Paid Successfully!\nTransaction Ref: ' + data.transaction_ref + '\n\nRedirecting to your Certified Legal Receipt...');
+                    window.location.href = '/receipt/' + currentPayingId;
+                } else {
+                    alert('Error: ' + (data.error || 'Payment failed'));
+                    btn.innerHTML = '<span>✓</span> Confirm & Pay Fine';
+                    btn.disabled = false;
+                }
+            } catch (err) {
+                alert('Network error during payment: ' + err);
+                btn.innerHTML = '<span>✓</span> Confirm & Pay Fine';
+                btn.disabled = false;
+            }
+        }
+
+        // Theme toggle controller
+        const themeBtn = document.getElementById('theme-toggle-btn');
+        const themeIcon = document.getElementById('theme-icon');
+        const themeText = document.getElementById('theme-text');
+        function syncTheme(t) {
+            if (themeIcon) themeIcon.textContent = t === 'light' ? '🌙' : '☀️';
+            if (themeText) themeText.textContent = t === 'light' ? 'Dark' : 'Light';
+        }
+        syncTheme(document.documentElement.getAttribute('data-theme') || 'dark');
+        if (themeBtn) {
+            themeBtn.addEventListener('click', () => {
+                const cur = document.documentElement.getAttribute('data-theme') || 'dark';
+                const next = cur === 'dark' ? 'light' : 'dark';
+                document.documentElement.setAttribute('data-theme', next);
+                localStorage.setItem('omnitraffic_theme', next);
+                syncTheme(next);
+            });
+        }
+    </script>
+</body>
+</html>

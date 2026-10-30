@@ -21,7 +21,7 @@ class MasterTrafficPipeline:
     def __init__(self,
                  coco_model_path="models/yolov8n.pt",
                  helmet_model_path="models/helmet_best.pt",
-                 expected_direction="bidirectional_split",
+                 expected_direction="auto",
                  line_y_ratio=0.60):
         
         print("[Pipeline] Initializing OmniTraffic AI Pipeline...")

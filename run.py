@@ -79,7 +79,7 @@ def main():
     parser.add_argument("--video", type=str, default="sample_data/traffic.mp4", help="Input video file path for CLI mode")
     parser.add_argument("--output", type=str, default="output_annotated.mp4", help="Output annotated video path for CLI mode")
     parser.add_argument("--heatmap", action="store_true", help="Enable thermal density heatmap overlay in output")
-    parser.add_argument("--direction", type=str, default="down", choices=["down", "up", "bidirectional_split"], help="Expected traffic flow direction")
+    parser.add_argument("--direction", type=str, default="bidirectional_split", choices=["auto", "down", "up", "bidirectional_split"], help="Expected traffic flow direction")
     parser.add_argument("--port", type=int, default=5000, help="Web dashboard server port")
     parser.add_argument("--host", type=str, default="0.0.0.0", help="Web dashboard host")
     

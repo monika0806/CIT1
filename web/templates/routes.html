@@ -1,0 +1,953 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SIT Tumkur AI Route Recommender & Congestion Avoidance Hub</title>
+    
+    <!-- Anti-cache meta -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Leaflet CSS & JS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
+    <!-- Main Styling -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
+    <script>
+        (function() {
+            const savedTheme = localStorage.getItem('omnitraffic_theme') || 'dark';
+            document.documentElement.setAttribute('data-theme', savedTheme);
+        })();
+    </script>
+
+    <style>
+        .routes-layout-grid {
+            display: grid;
+            grid-template-columns: 420px 1fr;
+            gap: 1.35rem;
+            min-height: 720px;
+        }
+        @media (max-width: 1200px) {
+            .routes-layout-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        .route-planner-panel {
+            background: var(--card-bg);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-xl);
+            padding: 1.35rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1.15rem;
+            box-shadow: var(--card-shadow);
+        }
+        .route-map-panel {
+            background: var(--card-bg);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-xl);
+            padding: 1.25rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            box-shadow: var(--card-shadow);
+            position: relative;
+        }
+        #route-map {
+            width: 100%;
+            height: 600px;
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--border-subtle);
+            z-index: 1;
+            background: #111827;
+        }
+        .location-select-box {
+            display: flex;
+            flex-direction: column;
+            gap: 0.65rem;
+            background: var(--chip-bg);
+            padding: 1rem;
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--border-subtle);
+        }
+        .loc-input-group {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .loc-icon-badge {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.85rem;
+            font-weight: 800;
+            flex-shrink: 0;
+        }
+        .loc-icon-badge.origin {
+            background: rgba(16, 185, 129, 0.2);
+            color: var(--neon-emerald);
+            border: 1.5px solid var(--neon-emerald);
+        }
+        .loc-icon-badge.dest {
+            background: rgba(244, 63, 94, 0.2);
+            color: var(--neon-rose);
+            border: 1.5px solid var(--neon-rose);
+        }
+        .swap-btn {
+            align-self: center;
+            background: var(--bg-surface);
+            border: 1px solid var(--border-subtle);
+            color: var(--text-secondary);
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: var(--transition-fast);
+            margin: -0.3rem 0;
+        }
+        .swap-btn:hover {
+            border-color: var(--neon-cyan);
+            color: var(--neon-cyan);
+            transform: rotate(180deg);
+        }
+        .route-card {
+            background: var(--chip-bg);
+            border: 1.5px solid var(--border-subtle);
+            border-radius: var(--radius-lg);
+            padding: 1rem;
+            cursor: pointer;
+            transition: var(--transition-fast);
+            display: flex;
+            flex-direction: column;
+            gap: 0.65rem;
+            position: relative;
+        }
+        .route-card:hover {
+            border-color: var(--neon-cyan);
+            box-shadow: 0 4px 18px rgba(0, 245, 255, 0.12);
+        }
+        .route-card.active {
+            border-color: var(--neon-cyan);
+            background: rgba(0, 245, 255, 0.06);
+            box-shadow: 0 0 20px rgba(0, 245, 255, 0.2);
+        }
+        .route-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .route-tag {
+            font-size: 0.68rem;
+            font-weight: 800;
+            padding: 0.2rem 0.55rem;
+            border-radius: 999px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .route-tag.optimal {
+            background: rgba(16, 185, 129, 0.18);
+            color: var(--neon-emerald);
+            border: 1px solid var(--neon-emerald);
+        }
+        .route-tag.alternate {
+            background: rgba(245, 158, 11, 0.18);
+            color: var(--neon-amber);
+            border: 1px solid var(--neon-amber);
+        }
+        .route-metrics-row {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 0.5rem;
+            padding: 0.5rem 0;
+            border-top: 1px solid var(--border-subtle);
+            border-bottom: 1px solid var(--border-subtle);
+        }
+        .metric-cell {
+            display: flex;
+            flex-direction: column;
+        }
+        .metric-cell .m-label {
+            font-size: 0.68rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+        }
+        .metric-cell .m-val {
+            font-size: 1.15rem;
+            font-weight: 800;
+            color: var(--text-pure);
+            font-family: 'JetBrains Mono', monospace;
+        }
+        .route-savings-banner {
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(0, 245, 255, 0.08) 100%);
+            border: 1px solid rgba(16, 185, 129, 0.4);
+            border-radius: var(--radius-md);
+            padding: 0.65rem 0.85rem;
+            font-size: 0.76rem;
+            font-weight: 700;
+            color: var(--neon-emerald);
+            display: flex;
+            align-items: center;
+            gap: 0.45rem;
+        }
+        .directions-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.45rem;
+            max-height: 220px;
+            overflow-y: auto;
+            padding-right: 0.3rem;
+            font-size: 0.75rem;
+        }
+        .direction-step {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.5rem;
+            padding: 0.45rem 0.6rem;
+            background: var(--bg-surface);
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border-subtle);
+            color: var(--text-secondary);
+        }
+        .direction-step strong {
+            color: var(--text-pure);
+        }
+        .basemap-group {
+            display: inline-flex;
+            background: var(--bg-surface);
+            border: 1px solid var(--border-subtle);
+            border-radius: 999px;
+            padding: 2px;
+            gap: 2px;
+        }
+        .basemap-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            padding: 0.32rem 0.75rem;
+            border-radius: 999px;
+            font-size: 0.72rem;
+            font-weight: 700;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            transition: var(--transition-fast);
+        }
+        .basemap-btn:hover {
+            color: var(--neon-cyan);
+        }
+        .basemap-btn.active {
+            background: var(--neon-cyan);
+            color: #050811;
+            font-weight: 800;
+            box-shadow: 0 0 10px rgba(0, 245, 255, 0.4);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Ambient Background Glows -->
+    <div class="ambient-glow glow-1"></div>
+    <div class="ambient-glow glow-2"></div>
+    <div class="ambient-glow glow-3"></div>
+
+    <!-- Top Command Navigation Bar -->
+    <header class="navbar">
+        <div class="brand">
+            <div class="brand-logo">
+                <span class="logo-core" style="background: var(--neon-rose);"></span>
+                <span class="logo-ring" style="border-color: rgba(244, 63, 94, 0.6);"></span>
+            </div>
+            <div class="brand-text">
+                <div class="brand-title">
+                    <span>OMNITRAFFIC</span>
+                    <span class="brand-tag" style="background: rgba(244, 63, 94, 0.15); color: #f43f5e; border-color: rgba(244, 63, 94, 0.35);">AI ROUTE PLANNER</span>
+                </div>
+                <div class="brand-sub">SIT Tumkur Arterial Congestion-Aware Routing & Smart Detour Engine</div>
+            </div>
+        </div>
+
+        <div class="header-center">
+            <div class="telemetry-pill">
+                <span class="status-indicator live"></span>
+                <span class="pill-label">TRAFFIC ENGINE:</span>
+                <span class="pill-val" style="color: var(--neon-cyan);">LIVE VOLUMES</span>
+            </div>
+            <div class="telemetry-pill clock-pill">
+                <span class="pill-icon">🕒</span>
+                <span class="pill-val" id="nav-clock">--:--:--</span>
+            </div>
+        </div>
+
+        <div class="nav-actions">
+            <div style="display: flex; gap: 0.4rem; margin-right: 0.5rem;">
+                <a href="/" class="portal-nav-btn"><span>📡</span> Live Feed</a>
+                <a href="/officer" class="portal-nav-btn"><span>🛡️</span> Officer Portal</a>
+                <a href="/citizen" class="portal-nav-btn"><span>👤</span> Citizen Portal</a>
+                <a href="/map" class="portal-nav-btn"><span>🗺️</span> GIS Map</a>
+                <a href="/routes" class="portal-nav-btn active"><span>🧭</span> Route Planner</a>
+            </div>
+            <button class="theme-toggle-btn" id="theme-toggle-btn" title="Toggle Light / Dark Mode">
+                <span id="theme-icon">☀️</span>
+                <span id="theme-text">Theme</span>
+            </button>
+        </div>
+    </header>
+
+    <main class="dashboard-container">
+
+        <!-- Main Workspace Split: Route Planner Controls + Interactive Route Map -->
+        <div class="routes-layout-grid">
+
+            <!-- Left Route Planner & Options Panel -->
+            <aside class="route-planner-panel">
+
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <h2 style="font-size: 1.05rem; font-weight: 800; color: var(--text-pure); display: flex; align-items: center; gap: 0.4rem;">
+                        <span>🧭</span> Plan Journey
+                    </h2>
+                    <span class="live-tag" style="background: rgba(16, 185, 129, 0.15); color: var(--neon-emerald); border-color: rgba(16, 185, 129, 0.3);">
+                        CONGESTION AWARE
+                    </span>
+                </div>
+
+                <!-- Origin / Destination Select Box -->
+                <div class="location-select-box">
+                    <div class="loc-input-group">
+                        <div class="loc-icon-badge origin">A</div>
+                        <div style="flex: 1;">
+                            <label style="font-size: 0.68rem; color: var(--text-muted); display: block; margin-bottom: 0.15rem;">FROM (ORIGIN):</label>
+                            <select id="route-origin-select" class="flow-select" style="width: 100%;">
+                                <option value="J3" selected>🛣️ Batawadi Junction (NH-48 Feeder)</option>
+                                <option value="J1">🏫 SIT Main Gate (BH Road Arterial)</option>
+                                <option value="J8">🏛️ Town Hall Circle (City Core)</option>
+                                <option value="J4">🏢 SIT Back Gate & Hostels</option>
+                                <option value="J2">🏘️ Gandhi Nagar / SIT 2nd Cross</option>
+                                <option value="J5">🛕 Kyathsandra Road / Siddaganga Math</option>
+                                <option value="J6">⭕ SS Puram / Ashoka Road</option>
+                                <option value="J7">🚆 Tumakuru Central Railway</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <button type="button" class="swap-btn" id="swap-locations-btn" title="Swap Origin and Destination">
+                        ⇅
+                    </button>
+
+                    <div class="loc-input-group">
+                        <div class="loc-icon-badge dest">B</div>
+                        <div style="flex: 1;">
+                            <label style="font-size: 0.68rem; color: var(--text-muted); display: block; margin-bottom: 0.15rem;">TO (DESTINATION):</label>
+                            <select id="route-dest-select" class="flow-select" style="width: 100%;">
+                                <option value="J1" selected>🏫 SIT Main Gate (BH Road Arterial)</option>
+                                <option value="J3">🛣️ Batawadi Junction (NH-48 Feeder)</option>
+                                <option value="J8">🏛️ Town Hall Circle (City Core)</option>
+                                <option value="J4">🏢 SIT Back Gate & Hostels</option>
+                                <option value="J2">🏘️ Gandhi Nagar / SIT 2nd Cross</option>
+                                <option value="J5">🛕 Kyathsandra Road / Siddaganga Math</option>
+                                <option value="J6">⭕ SS Puram / Ashoka Road</option>
+                                <option value="J7">🚆 Tumakuru Central Railway</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Simulation Scenarios (to test rush hours & diverted traffic) -->
+                <div>
+                    <label style="font-size: 0.72rem; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 0.35rem;">
+                        SIMULATED TRAFFIC SCENARIO:
+                    </label>
+                    <div style="display: flex; gap: 0.35rem; flex-wrap: wrap;">
+                        <button class="action-btn active" data-sc="college_rush" onclick="switchRouteScenario('college_rush')" style="padding: 0.25rem 0.6rem; font-size: 0.72rem;">
+                            🎓 SIT Rush
+                        </button>
+                        <button class="action-btn" data-sc="normal" onclick="switchRouteScenario('normal')" style="padding: 0.25rem 0.6rem; font-size: 0.72rem;">
+                            🚗 Normal
+                        </button>
+                        <button class="action-btn" data-sc="heavy_monsoon" onclick="switchRouteScenario('heavy_monsoon')" style="padding: 0.25rem 0.6rem; font-size: 0.72rem;">
+                            🌧️ Rain
+                        </button>
+                        <button class="action-btn" data-sc="highway_diverted" onclick="switchRouteScenario('highway_diverted')" style="padding: 0.25rem 0.6rem; font-size: 0.72rem;">
+                            🚧 Diverted
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Compute Button -->
+                <button type="button" id="compute-route-btn" class="action-btn" style="background: var(--neon-cyan); color: #050811; font-weight: 800; font-size: 0.85rem; padding: 0.65rem; border-color: var(--neon-cyan);">
+                    <span>🧭</span> Calculate Optimal Route
+                </button>
+
+                <!-- Savings Banner -->
+                <div class="route-savings-banner" id="savings-banner" style="display: none;">
+                    <span>⚡</span>
+                    <span id="savings-text">Calculating traffic delay...</span>
+                </div>
+
+                <!-- Route Cards List (Recommended + Alternative) -->
+                <div id="route-cards-container" style="display: flex; flex-direction: column; gap: 0.75rem;">
+                    <!-- Dynamically populated via JS -->
+                </div>
+
+                <!-- Step-by-Step Directions Container -->
+                <div id="directions-container" style="display: none;">
+                    <h3 style="font-size: 0.82rem; font-weight: 800; color: var(--text-pure); margin-bottom: 0.45rem; display: flex; align-items: center; gap: 0.35rem;">
+                        <span>📋</span> Turn-by-Turn Waypoints
+                    </h3>
+                    <div class="directions-list" id="directions-list">
+                        <!-- Dynamically filled -->
+                    </div>
+                </div>
+
+            </aside>
+
+            <!-- Right Interactive Route Map Viewport -->
+            <section class="route-map-panel">
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
+                    <div class="cam-info">
+                        <span class="rec-dot" style="background: var(--neon-cyan); box-shadow: 0 0 10px var(--neon-cyan);"></span>
+                        <span class="cam-name">SIT TUMKUR MULTI-PATH ROUTING RADAR</span>
+                        <span class="cam-tag" style="background: rgba(16, 185, 129, 0.15); color: var(--neon-emerald); border-color: rgba(16, 185, 129, 0.3);">ACTIVE GIS</span>
+                    </div>
+
+                    <!-- Free Basemap Switcher -->
+                    <div class="basemap-group">
+                        <button class="basemap-btn active" id="btn-bm-osm" onclick="setBaseMap('osm')" title="OpenStreetMap: Full SIT campus & roads">
+                            <span>🗺️</span> OpenStreetMap
+                        </button>
+                        <button class="basemap-btn" id="btn-bm-dark" onclick="setBaseMap('dark')" title="Esri Dark Canvas: Cyber Dark GIS">
+                            <span>🌃</span> Cyber Dark
+                        </button>
+                        <button class="basemap-btn" id="btn-bm-sat" onclick="setBaseMap('satellite')" title="Esri World Imagery: Real Satellite Aerial Photo">
+                            <span>🛰️</span> Satellite
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Leaflet Route Map Canvas -->
+                <div id="route-map"></div>
+
+                <!-- Route Map Legend Bar -->
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem; padding: 0.65rem 1rem; background: var(--chip-bg); border-radius: var(--radius-md); border: 1px solid var(--border-subtle); font-size: 0.74rem;">
+                    <div style="display: flex; gap: 0.85rem; align-items: center; flex-wrap: wrap;">
+                        <span style="display: flex; align-items: center; gap: 0.35rem;">
+                            <span style="display: inline-block; width: 18px; height: 5px; background: #10b981; border-radius: 2px;"></span>
+                            <strong>Recommended Route (AI Fastest)</strong>
+                        </span>
+                        <span style="display: flex; align-items: center; gap: 0.35rem;">
+                            <span style="display: inline-block; width: 18px; height: 4px; background: #f59e0b; border-style: dashed; border-radius: 2px;"></span>
+                            <strong>Alternative / Bypass Route</strong>
+                        </span>
+                    </div>
+                    <div style="display: flex; gap: 0.6rem; align-items: center;">
+                        <span style="display: flex; align-items: center; gap: 0.25rem;"><span style="width: 8px; height: 8px; border-radius: 50%; background: #10b981;"></span> Free (&lt;35%)</span>
+                        <span style="display: flex; align-items: center; gap: 0.25rem;"><span style="width: 8px; height: 8px; border-radius: 50%; background: #f59e0b;"></span> Moderate</span>
+                        <span style="display: flex; align-items: center; gap: 0.25rem;"><span style="width: 8px; height: 8px; border-radius: 50%; background: #ef4444;"></span> Congested</span>
+                    </div>
+                </div>
+
+            </section>
+        </div>
+
+    </main>
+
+    <!-- Route Planner Client Logic -->
+    <script>
+        // System Clock
+        function updateClock() {
+            const clockEl = document.getElementById('nav-clock');
+            if (clockEl) {
+                clockEl.textContent = new Date().toLocaleTimeString('en-US', { hour12: false });
+            }
+        }
+        setInterval(updateClock, 1000);
+        updateClock();
+
+        // Theme Toggle Controller
+        const themeBtn = document.getElementById('theme-toggle-btn');
+        const themeIcon = document.getElementById('theme-icon');
+        const themeText = document.getElementById('theme-text');
+        function syncThemeUI(t) {
+            if (themeIcon) themeIcon.textContent = t === 'light' ? '🌙' : '☀️';
+            if (themeText) themeText.textContent = t === 'light' ? 'Dark' : 'Light';
+        }
+        syncThemeUI(document.documentElement.getAttribute('data-theme') || 'dark');
+        if (themeBtn) {
+            themeBtn.addEventListener('click', () => {
+                const cur = document.documentElement.getAttribute('data-theme') || 'dark';
+                const next = cur === 'dark' ? 'light' : 'dark';
+                document.documentElement.setAttribute('data-theme', next);
+                localStorage.setItem('omnitraffic_theme', next);
+                syncThemeUI(next);
+            });
+        }
+
+        // =========================================================================
+        // LEAFLET ROUTE MAP INITIALIZATION
+        // =========================================================================
+        const sitCenter = [13.3275, 77.1261];
+        const routeMap = L.map('route-map', {
+            center: sitCenter,
+            zoom: 15,
+            zoomControl: true,
+            preferCanvas: true
+        });
+
+        // 100% Free & Open Tile Providers (Zero API Keys, Zero Watermarks)
+        const baseLayers = {
+            'osm': L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; OpenStreetMap contributors',
+                maxZoom: 19
+            }),
+            'dark': L.layerGroup([
+                L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}', {
+                    attribution: 'Tiles &copy; Esri',
+                    maxZoom: 16
+                }),
+                L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}', {
+                    attribution: '',
+                    maxZoom: 16
+                })
+            ]),
+            'satellite': L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+                attribution: 'Tiles &copy; Esri &mdash; Aerial Imagery of SIT Tumkur Campus',
+                maxZoom: 19
+            })
+        };
+
+        let currentBaseMap = 'osm';
+        baseLayers[currentBaseMap].addTo(routeMap);
+
+        function setBaseMap(type) {
+            if (!baseLayers[type]) return;
+            for (const [key, layer] of Object.entries(baseLayers)) {
+                if (routeMap.hasLayer(layer)) {
+                    routeMap.removeLayer(layer);
+                }
+            }
+            baseLayers[type].addTo(routeMap);
+            currentBaseMap = type;
+
+            document.querySelectorAll('.basemap-btn').forEach(b => b.classList.remove('active'));
+            const activeBtn = document.getElementById(
+                type === 'osm' ? 'btn-bm-osm' :
+                type === 'dark' ? 'btn-bm-dark' : 'btn-bm-sat'
+            );
+            if (activeBtn) activeBtn.classList.add('active');
+            routeMap.invalidateSize();
+        }
+
+        // Route Layers State
+        let primaryRouteLayer = null;
+        let altRouteLayers = [];
+        let originMarker = null;
+        let destMarker = null;
+        let junctionMarkers = {};
+        let liveCamMarker = null;
+        let cachedRouteData = null;
+
+        // Custom Markers
+        function createPointIcon(label, isOrigin) {
+            const bg = isOrigin ? '#10b981' : '#f43f5e';
+            return L.divIcon({
+                className: 'custom-pin-marker',
+                html: `
+                    <div style="
+                        position: relative;
+                        width: 32px;
+                        height: 32px;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                    ">
+                        <div style="
+                            position: absolute;
+                            width: 100%;
+                            height: 100%;
+                            border-radius: 50%;
+                            background: ${bg};
+                            opacity: 0.35;
+                            animation: pulse-ring 1.5s infinite;
+                        "></div>
+                        <div style="
+                            width: 24px;
+                            height: 24px;
+                            background: ${bg};
+                            border: 2px solid #ffffff;
+                            border-radius: 50%;
+                            color: #ffffff;
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                            font-weight: 800;
+                            font-size: 11px;
+                            box-shadow: 0 0 12px ${bg};
+                        ">
+                            ${label}
+                        </div>
+                    </div>
+                `,
+                iconSize: [32, 32],
+                iconAnchor: [16, 16]
+            });
+        }
+
+        function createNodeDotIcon(congestion) {
+            let color = '#10b981';
+            if (congestion >= 65) color = '#ef4444';
+            else if (congestion >= 35) color = '#f59e0b';
+
+            return L.divIcon({
+                className: 'node-dot-marker',
+                html: `
+                    <div style="
+                        width: 14px;
+                        height: 14px;
+                        border-radius: 50%;
+                        background: ${color};
+                        border: 2px solid #ffffff;
+                        box-shadow: 0 0 8px ${color};
+                    "></div>
+                `,
+                iconSize: [14, 14],
+                iconAnchor: [7, 7]
+            });
+        }
+
+        // =========================================================================
+        // ROUTE PLANNING LOGIC
+        // =========================================================================
+        const originSelect = document.getElementById('route-origin-select');
+        const destSelect = document.getElementById('route-dest-select');
+        const swapBtn = document.getElementById('swap-locations-btn');
+        const computeBtn = document.getElementById('compute-route-btn');
+
+        if (swapBtn) {
+            swapBtn.addEventListener('click', () => {
+                const temp = originSelect.value;
+                originSelect.value = destSelect.value;
+                destSelect.value = temp;
+                fetchAndRenderRoutes();
+            });
+        }
+
+        if (computeBtn) {
+            computeBtn.addEventListener('click', fetchAndRenderRoutes);
+        }
+
+        originSelect.addEventListener('change', fetchAndRenderRoutes);
+        destSelect.addEventListener('change', fetchAndRenderRoutes);
+
+        async function switchRouteScenario(sc) {
+            document.querySelectorAll('[data-sc]').forEach(b => b.classList.toggle('active', b.dataset.sc === sc));
+            await fetch('/api/map/scenario', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ scenario: sc })
+            });
+            fetchAndRenderRoutes();
+        }
+
+        async function fetchAndRenderRoutes() {
+            const origin = originSelect.value;
+            const dest = destSelect.value;
+
+            computeBtn.innerHTML = '<span>⏳</span> Calculating Congestion...';
+            computeBtn.disabled = true;
+
+            try {
+                const res = await fetch(`/api/routes/plan?origin=${origin}&destination=${dest}`);
+                const data = await res.json();
+                if (data.status === 'success') {
+                    cachedRouteData = data;
+                    renderRouteResults(data);
+                } else {
+                    alert(data.message || "Failed to calculate route.");
+                }
+            } catch (err) {
+                console.error("Routing error:", err);
+            } finally {
+                computeBtn.innerHTML = '<span>🧭</span> Calculate Optimal Route';
+                computeBtn.disabled = false;
+            }
+        }
+
+        function renderRouteResults(data) {
+            const container = document.getElementById('route-cards-container');
+            const savingsBanner = document.getElementById('savings-banner');
+            const savingsText = document.getElementById('savings-text');
+            const dirContainer = document.getElementById('directions-container');
+            const dirList = document.getElementById('directions-list');
+
+            // Savings Banner
+            if (data.savings_summary && data.savings_summary !== "Optimal traffic route selected.") {
+                savingsBanner.style.display = 'flex';
+                savingsText.textContent = data.savings_summary;
+            } else {
+                savingsBanner.style.display = 'none';
+            }
+
+            // Clean previous cards
+            container.innerHTML = '';
+
+            const rec = data.recommended_route;
+            const alts = data.alternative_routes || [];
+
+            // 1. Primary Recommended Route Card
+            const recCard = document.createElement('div');
+            recCard.className = 'route-card active';
+            recCard.id = 'card-route-primary';
+            recCard.innerHTML = `
+                <div class="route-card-header">
+                    <div>
+                        <span class="route-tag optimal">⚡ AI RECOMMENDED</span>
+                        <div style="font-size: 0.88rem; font-weight: 800; color: var(--text-pure); margin-top: 0.2rem;">
+                            ${rec.name}
+                        </div>
+                    </div>
+                    <span class="status-pill" style="background: rgba(16, 185, 129, 0.15); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.3);">
+                        ${rec.status}
+                    </span>
+                </div>
+                <div class="route-metrics-row">
+                    <div class="metric-cell">
+                        <span class="m-label">EST. TIME</span>
+                        <span class="m-val" style="color: #10b981;">${rec.travel_time_mins} <small style="font-size: 0.7rem;">min</small></span>
+                    </div>
+                    <div class="metric-cell">
+                        <span class="m-label">DISTANCE</span>
+                        <span class="m-val">${rec.distance_km} <small style="font-size: 0.7rem;">km</small></span>
+                    </div>
+                    <div class="metric-cell">
+                        <span class="m-label">TRAFFIC DELAY</span>
+                        <span class="m-val" style="color: ${rec.delay_mins > 2 ? '#ef4444' : 'var(--text-muted)'};">
+                            +${rec.delay_mins} <small style="font-size: 0.7rem;">min</small>
+                        </span>
+                    </div>
+                </div>
+                <div style="font-size: 0.72rem; color: var(--text-secondary);">
+                    🛣️ Corridors: <strong>${rec.nodes.join(' &rarr; ')}</strong>
+                </div>
+            `;
+            recCard.addEventListener('click', () => highlightRoute('primary'));
+            container.appendChild(recCard);
+
+            // 2. Alternative Route Cards
+            alts.forEach((alt, idx) => {
+                const altCard = document.createElement('div');
+                altCard.className = 'route-card';
+                altCard.id = `card-route-alt-${idx}`;
+                const diffTime = (alt.travel_time_mins - rec.travel_time_mins).toFixed(1);
+                altCard.innerHTML = `
+                    <div class="route-card-header">
+                        <div>
+                            <span class="route-tag alternate">ALTERNATIVE #${idx + 1}</span>
+                            <div style="font-size: 0.88rem; font-weight: 800; color: var(--text-pure); margin-top: 0.2rem;">
+                                ${alt.name}
+                            </div>
+                        </div>
+                        <span class="status-pill" style="background: rgba(245, 158, 11, 0.15); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.3);">
+                            ${alt.status}
+                        </span>
+                    </div>
+                    <div class="route-metrics-row">
+                        <div class="metric-cell">
+                            <span class="m-label">EST. TIME</span>
+                            <span class="m-val">${alt.travel_time_mins} <small style="font-size: 0.7rem;">min</small></span>
+                        </div>
+                        <div class="metric-cell">
+                            <span class="m-label">DISTANCE</span>
+                            <span class="m-val">${alt.distance_km} <small style="font-size: 0.7rem;">km</small></span>
+                        </div>
+                        <div class="metric-cell">
+                            <span class="m-label">TIME DIFF</span>
+                            <span class="m-val" style="color: ${diffTime > 0 ? '#ef4444' : '#10b981'};">
+                                ${diffTime > 0 ? '+' : ''}${diffTime} <small style="font-size: 0.7rem;">min</small>
+                            </span>
+                        </div>
+                    </div>
+                    <div style="font-size: 0.72rem; color: var(--text-muted);">
+                        🛣️ Corridors: ${alt.nodes.join(' &rarr; ')}
+                    </div>
+                `;
+                altCard.addEventListener('click', () => highlightRoute(`alt-${idx}`));
+                container.appendChild(altCard);
+            });
+
+            // Directions list for recommended route
+            if (rec.directions && rec.directions.length > 0) {
+                dirContainer.style.display = 'block';
+                dirList.innerHTML = rec.directions.map((d, i) => `
+                    <div class="direction-step">
+                        <span style="font-family: monospace; color: var(--neon-cyan); font-weight: 800;">${i + 1}.</span>
+                        <span>${d}</span>
+                    </div>
+                `).join('');
+            } else {
+                dirContainer.style.display = 'none';
+            }
+
+            // Draw on Leaflet Map
+            drawRoutesOnMap(data);
+        }
+
+        function drawRoutesOnMap(data) {
+            // Remove previous polylines
+            if (primaryRouteLayer) routeMap.removeLayer(primaryRouteLayer);
+            altRouteLayers.forEach(l => routeMap.removeLayer(l));
+            altRouteLayers = [];
+
+            // Draw Alternative Routes first (underneath)
+            if (data.alternative_routes) {
+                data.alternative_routes.forEach((alt, idx) => {
+                    const altLine = L.polyline(alt.polyline, {
+                        color: '#f59e0b',
+                        weight: 5,
+                        opacity: 0.65,
+                        dashArray: '8, 8',
+                        lineCap: 'round'
+                    }).addTo(routeMap);
+
+                    altLine.bindPopup(`
+                        <div class="junction-popup">
+                            <h4>🛣️ ${alt.name}</h4>
+                            <div class="popup-stat-row"><span>Travel Time:</span><strong>${alt.travel_time_mins} mins</strong></div>
+                            <div class="popup-stat-row"><span>Distance:</span><strong>${alt.distance_km} km</strong></div>
+                            <div class="popup-stat-row"><span>Status:</span><strong style="color: ${alt.color};">${alt.status}</strong></div>
+                        </div>
+                    `);
+                    altRouteLayers.push(altLine);
+                });
+            }
+
+            // Draw Primary Recommended Route (top, bold glowing green)
+            const rec = data.recommended_route;
+            primaryRouteLayer = L.polyline(rec.polyline, {
+                color: '#10b981',
+                weight: 7,
+                opacity: 0.92,
+                lineCap: 'round',
+                lineJoin: 'round'
+            }).addTo(routeMap);
+
+            primaryRouteLayer.bindPopup(`
+                <div class="junction-popup">
+                    <h4>⭐ ${rec.name}</h4>
+                    <div class="popup-badge" style="background: #10b981; color: #ffffff;">FASTEST CONGESTION-AWARE ROUTE</div>
+                    <div class="popup-stat-row"><span>Travel Time:</span><strong>${rec.travel_time_mins} mins</strong></div>
+                    <div class="popup-stat-row"><span>Distance:</span><strong>${rec.distance_km} km</strong></div>
+                    <div class="popup-stat-row"><span>Traffic Delay:</span><strong>+${rec.delay_mins} mins</strong></div>
+                </div>
+            `);
+
+            // Markers for Origin & Destination
+            if (originMarker) routeMap.removeLayer(originMarker);
+            if (destMarker) routeMap.removeLayer(destMarker);
+
+            originMarker = L.marker([data.origin.lat, data.origin.lng], {
+                icon: createPointIcon('A', true),
+                zIndexOffset: 1200
+            }).addTo(routeMap);
+            originMarker.bindPopup(`<strong>🟢 ORIGIN:</strong><br>${data.origin.name}`);
+
+            destMarker = L.marker([data.destination.lat, data.destination.lng], {
+                icon: createPointIcon('B', false),
+                zIndexOffset: 1200
+            }).addTo(routeMap);
+            destMarker.bindPopup(`<strong>🏁 DESTINATION:</strong><br>${data.destination.name}`);
+
+            // Fit map bounds to encompass the route
+            const allCoords = [...rec.polyline];
+            data.alternative_routes.forEach(a => allCoords.push(...a.polyline));
+            if (allCoords.length > 0) {
+                routeMap.fitBounds(L.polyline(allCoords).getBounds(), { padding: [40, 40] });
+            }
+
+            // Load junction status nodes for situational awareness
+            fetchJunctionTelemetry();
+        }
+
+        async function fetchJunctionTelemetry() {
+            try {
+                const res = await fetch('/api/map/telemetry');
+                const data = await res.json();
+                if (!data || !data.nodes) return;
+
+                for (const [jid, node] of Object.entries(data.nodes)) {
+                    if (!junctionMarkers[jid]) {
+                        junctionMarkers[jid] = L.marker([node.lat, node.lng], {
+                            icon: createNodeDotIcon(node.congestion_pct)
+                        }).addTo(routeMap);
+                    } else {
+                        junctionMarkers[jid].setIcon(createNodeDotIcon(node.congestion_pct));
+                    }
+                    junctionMarkers[jid].bindPopup(`
+                        <div class="junction-popup">
+                            <h4>📍 ${node.name}</h4>
+                            <div class="popup-stat-row"><span>Congestion:</span><strong>${node.congestion_pct}%</strong></div>
+                            <div class="popup-stat-row"><span>Avg Speed:</span><strong>${node.avg_speed} km/h</strong></div>
+                        </div>
+                    `);
+                }
+
+                // If live camera is active, render camera marker
+                if (data.live_camera && data.live_camera.active) {
+                    const cam = data.live_camera;
+                    if (!liveCamMarker) {
+                        liveCamMarker = L.marker([cam.lat, cam.lng], {
+                            icon: L.divIcon({
+                                className: 'cam-pin',
+                                html: `<div style="width: 26px; height: 26px; border-radius: 50%; background: ${cam.color}; border: 2px solid #fff; box-shadow: 0 0 12px ${cam.color}; display: flex; align-items: center; justify-content: center; font-size: 11px;">📹</div>`,
+                                iconSize: [26, 26],
+                                iconAnchor: [13, 13]
+                            }),
+                            zIndexOffset: 1500
+                        }).addTo(routeMap);
+                    } else {
+                        liveCamMarker.setLatLng([cam.lat, cam.lng]);
+                    }
+                    liveCamMarker.bindPopup(`<strong>📹 Live Video Surveillance Cam</strong><br>${cam.name}<br>Active Vehicles: ${cam.active_vehicles}`);
+                }
+            } catch (e) {
+                console.error("Telemetry fetch error:", e);
+            }
+        }
+
+        function highlightRoute(type) {
+            document.querySelectorAll('.route-card').forEach(c => c.classList.remove('active'));
+            if (type === 'primary') {
+                document.getElementById('card-route-primary')?.classList.add('active');
+                if (primaryRouteLayer) {
+                    primaryRouteLayer.setStyle({ color: '#10b981', weight: 8, opacity: 1.0 });
+                }
+                altRouteLayers.forEach(l => l.setStyle({ opacity: 0.35 }));
+            } else {
+                const card = document.getElementById(`card-route-${type}`);
+                if (card) card.classList.add('active');
+                const idx = parseInt(type.split('-')[1]);
+                if (altRouteLayers[idx]) {
+                    altRouteLayers[idx].setStyle({ color: '#00f5ff', weight: 8, opacity: 1.0 });
+                }
+                if (primaryRouteLayer) primaryRouteLayer.setStyle({ opacity: 0.4 });
+            }
+        }
+
+        // Initial Route Calculation on load
+        fetchAndRenderRoutes();
+    </script>
+</body>
+</html>

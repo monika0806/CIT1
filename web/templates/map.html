@@ -1,0 +1,851 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SIT Tumkur Congestion Heatmap & AI Traffic Prediction Hub</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+
+    <!-- Leaflet CSS & JS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
+
+    <!-- Main Styling -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
+    <script>
+        (function() {
+            const savedTheme = localStorage.getItem('omnitraffic_theme') || 'dark';
+            document.documentElement.setAttribute('data-theme', savedTheme);
+        })();
+    </script>
+
+    <style>
+        .map-layout-grid {
+            display: grid;
+            grid-template-columns: 2.5fr 1fr;
+            gap: 1.35rem;
+            min-height: 720px;
+        }
+        @media (max-width: 1280px) {
+            .map-layout-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        .map-stage-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-xl);
+            padding: 1.25rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            box-shadow: var(--card-shadow);
+            position: relative;
+        }
+        #leaflet-map {
+            width: 100%;
+            height: 580px;
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--border-subtle);
+            z-index: 1;
+            background: #111827;
+        }
+        .basemap-group {
+            display: inline-flex;
+            background: var(--bg-surface);
+            border: 1px solid var(--border-subtle);
+            border-radius: 999px;
+            padding: 2px;
+            gap: 2px;
+        }
+        .basemap-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            padding: 0.32rem 0.75rem;
+            border-radius: 999px;
+            font-size: 0.72rem;
+            font-weight: 700;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            transition: var(--transition-fast);
+        }
+        .basemap-btn:hover {
+            color: var(--neon-cyan);
+        }
+        .basemap-btn.active {
+            background: var(--neon-cyan);
+            color: #050811;
+            font-weight: 800;
+            box-shadow: 0 0 10px rgba(0, 245, 255, 0.4);
+        }
+        .map-controls-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 0.85rem;
+            padding: 0.75rem 1rem;
+            background: var(--chip-bg);
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border-subtle);
+        }
+        .scenario-chips {
+            display: flex;
+            gap: 0.45rem;
+            flex-wrap: wrap;
+        }
+        .scenario-chip {
+            background: var(--bg-surface);
+            border: 1px solid var(--border-subtle);
+            color: var(--text-secondary);
+            padding: 0.35rem 0.75rem;
+            border-radius: 999px;
+            font-size: 0.74rem;
+            font-weight: 700;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.35rem;
+            transition: var(--transition-fast);
+        }
+        .scenario-chip:hover {
+            border-color: var(--neon-cyan);
+            color: var(--neon-cyan);
+        }
+        .scenario-chip.active {
+            background: rgba(0, 245, 255, 0.15);
+            border-color: var(--neon-cyan);
+            color: var(--neon-cyan);
+            box-shadow: 0 0 12px rgba(0, 245, 255, 0.3);
+        }
+        .time-slider-wrap {
+            display: flex;
+            align-items: center;
+            gap: 0.65rem;
+            font-size: 0.75rem;
+            font-weight: 700;
+        }
+        .time-slider-wrap input[type=range] {
+            accent-color: var(--neon-cyan);
+            cursor: pointer;
+            width: 130px;
+        }
+        .map-side-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 1.15rem;
+        }
+        .forecast-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-xl);
+            padding: 1.25rem;
+            box-shadow: var(--card-shadow);
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+        .forecast-item {
+            display: flex;
+            flex-direction: column;
+            gap: 0.3rem;
+            padding: 0.65rem;
+            background: var(--chip-bg);
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border-subtle);
+        }
+        .forecast-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.78rem;
+            font-weight: 700;
+        }
+        .forecast-bar-track {
+            width: 100%;
+            height: 7px;
+            background: rgba(148, 163, 184, 0.2);
+            border-radius: 999px;
+            overflow: hidden;
+            margin-top: 0.2rem;
+        }
+        .forecast-bar-fill {
+            height: 100%;
+            border-radius: 999px;
+            transition: width 0.4s ease;
+        }
+        .advisory-box {
+            background: linear-gradient(135deg, rgba(245, 158, 11, 0.12) 0%, rgba(59, 130, 246, 0.08) 100%);
+            border: 1px solid rgba(245, 158, 11, 0.35);
+            border-radius: var(--radius-lg);
+            padding: 1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        .advisory-title {
+            font-size: 0.8rem;
+            font-weight: 800;
+            color: var(--neon-amber);
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        .advisory-text {
+            font-size: 0.76rem;
+            color: var(--text-primary);
+            line-height: 1.45;
+        }
+        .junction-popup {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            color: #0f172a;
+            min-width: 220px;
+        }
+        .junction-popup h4 {
+            font-size: 0.95rem;
+            font-weight: 800;
+            margin-bottom: 0.3rem;
+            color: #0f172a;
+        }
+        .popup-stat-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.78rem;
+            margin-bottom: 0.25rem;
+            border-bottom: 1px dashed #cbd5e1;
+            padding-bottom: 0.2rem;
+        }
+        .popup-badge {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.7rem;
+            font-weight: 700;
+            padding: 0.15rem 0.5rem;
+            border-radius: 4px;
+            display: inline-block;
+            margin-top: 0.4rem;
+        }
+        .legend-card {
+            display: flex;
+            gap: 0.85rem;
+            align-items: center;
+            padding: 0.45rem 0.85rem;
+            background: var(--bg-surface);
+            border-radius: var(--radius-sm);
+            border: 1px solid var(--border-subtle);
+            font-size: 0.72rem;
+            font-weight: 700;
+        }
+        .legend-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Ambient Background Glows -->
+    <div class="ambient-glow glow-1"></div>
+    <div class="ambient-glow glow-2"></div>
+    <div class="ambient-glow glow-3"></div>
+
+    <!-- Top Command Navigation Bar -->
+    <header class="navbar">
+        <div class="brand">
+            <div class="brand-logo">
+                <span class="logo-core" style="background: var(--neon-amber);"></span>
+                <span class="logo-ring" style="border-color: rgba(245, 158, 11, 0.6);"></span>
+            </div>
+            <div class="brand-text">
+                <div class="brand-title">
+                    <span>OMNITRAFFIC</span>
+                    <span class="brand-tag" style="background: rgba(245, 158, 11, 0.15); color: var(--neon-amber); border-color: rgba(245, 158, 11, 0.35);">GIS HEATMAP</span>
+                </div>
+                <div class="brand-sub">SIT Tumkur Campus & BH Road Arterial Traffic Intensity Radar</div>
+            </div>
+        </div>
+
+        <div class="header-center">
+            <div class="telemetry-pill">
+                <span class="status-indicator live"></span>
+                <span class="pill-label">SIM ENGINE:</span>
+                <span class="pill-val" id="engine-fps">60 FPS</span>
+            </div>
+            <div class="telemetry-pill">
+                <span class="pill-label">WEATHER:</span>
+                <span class="pill-val" id="weather-val" style="color: var(--neon-emerald);">☀️ Clear</span>
+            </div>
+            <div class="telemetry-pill clock-pill">
+                <span class="pill-icon">🕒</span>
+                <span class="pill-val" id="sim-clock">--:--:--</span>
+            </div>
+        </div>
+
+        <div class="nav-actions">
+            <div style="display: flex; gap: 0.4rem; margin-right: 0.5rem;">
+                <a href="/" class="portal-nav-btn"><span>📡</span> Live Feed</a>
+                <a href="/officer" class="portal-nav-btn"><span>🛡️</span> Officer Portal</a>
+                <a href="/citizen" class="portal-nav-btn"><span>👤</span> Citizen Portal</a>
+                <a href="/map" class="portal-nav-btn active"><span>🗺️</span> GIS Map</a>
+                <a href="/routes" class="portal-nav-btn"><span>🧭</span> Route Planner</a>
+            </div>
+            <button class="theme-toggle-btn" id="theme-toggle-btn" title="Toggle Light / Dark Mode">
+                <span id="theme-icon">☀️</span>
+                <span id="theme-text">Theme</span>
+            </button>
+            <button class="action-btn" id="reset-sim-btn" title="Reset Simulation Parameters">
+                <span>🔄</span> Reset
+            </button>
+        </div>
+    </header>
+
+    <main class="dashboard-container">
+
+        <!-- 4-Card GIS KPI Deck -->
+        <section class="kpi-deck">
+            <div class="kpi-card" style="--accent: var(--neon-cyan);">
+                <div class="kpi-top">
+                    <span class="kpi-label">Active Flowing Vehicles</span>
+                    <div class="kpi-icon-wrap">🚗</div>
+                </div>
+                <div class="kpi-main">
+                    <span class="kpi-num" id="kpi-total-vehicles">0</span>
+                </div>
+                <div class="kpi-footer">
+                    <span class="entity-chip veh-chip">SIT Tumkur Perimeter</span>
+                </div>
+            </div>
+
+            <div class="kpi-card" style="--accent: var(--neon-emerald);">
+                <div class="kpi-top">
+                    <span class="kpi-label">Network Mean Speed</span>
+                    <div class="kpi-icon-wrap">⚡</div>
+                </div>
+                <div class="kpi-main">
+                    <span class="kpi-num" id="kpi-mean-speed">0 <small style="font-size: 1rem; color: var(--text-muted);">km/h</small></span>
+                </div>
+                <div class="kpi-footer">
+                    <span class="los-badge" id="kpi-overall-los">LOS A • Free Flow</span>
+                </div>
+            </div>
+
+            <div class="kpi-card" style="--accent: var(--neon-amber);">
+                <div class="kpi-top">
+                    <span class="kpi-label">Corridor Congestion Index</span>
+                    <div class="kpi-icon-wrap">📊</div>
+                </div>
+                <div class="kpi-main">
+                    <span class="kpi-num" id="kpi-congestion-pct">0%</span>
+                </div>
+                <div class="kpi-footer">
+                    <span class="flow-indicator down">Greenshields Density</span>
+                </div>
+            </div>
+
+            <div class="kpi-card" style="--accent: var(--neon-rose);">
+                <div class="kpi-top">
+                    <span class="kpi-label">Critical Bottleneck Node</span>
+                    <div class="kpi-icon-wrap">🚨</div>
+                </div>
+                <div class="kpi-main">
+                    <span class="kpi-num" id="kpi-bottleneck-node" style="font-size: 1.35rem; line-height: 1.2;">SIT Main Gate</span>
+                </div>
+                <div class="kpi-footer">
+                    <span class="viol-chip" id="kpi-bottleneck-pct">0% Load</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- Main Workspace: Interactive GIS Map + Prediction Forecast Panel -->
+        <div class="map-layout-grid">
+
+            <!-- Map Viewport Card -->
+            <section class="map-stage-card">
+                <div class="stage-header">
+                    <div class="cam-info">
+                        <span class="rec-dot" style="background: var(--neon-amber); box-shadow: 0 0 10px var(--neon-amber);"></span>
+                        <span class="cam-name">SIT TUMKUR (KARNATAKA) ARTERIAL TRAFFIC RADAR</span>
+                        <span class="cam-tag" style="background: rgba(0, 245, 255, 0.15); color: var(--neon-cyan); border-color: rgba(0, 245, 255, 0.3);">LIVE GIS GIS</span>
+                    </div>
+
+                    <!-- Legend -->
+                    <div class="legend-card">
+                        <span style="display: flex; align-items: center; gap: 0.3rem;"><span class="legend-dot" style="background: #10b981;"></span> Free (<30%)</span>
+                        <span style="display: flex; align-items: center; gap: 0.3rem;"><span class="legend-dot" style="background: #3b82f6;"></span> Moderate</span>
+                        <span style="display: flex; align-items: center; gap: 0.3rem;"><span class="legend-dot" style="background: #f59e0b;"></span> Heavy</span>
+                        <span style="display: flex; align-items: center; gap: 0.3rem;"><span class="legend-dot" style="background: #ff0055;"></span> Jam</span>
+                    </div>
+                </div>
+
+                <!-- Leaflet Container -->
+                <div id="leaflet-map"></div>
+
+                <!-- Map Interactive Simulation Controls Bar -->
+                <div class="map-controls-bar">
+                    <div class="scenario-chips">
+                        <span style="font-size: 0.72rem; font-weight: 800; color: var(--text-muted); align-self: center; text-transform: uppercase;">Scenarios:</span>
+                        <button class="scenario-chip active" data-scenario="college_rush" onclick="switchScenario('college_rush')">
+                            <span>🎓</span> SIT College Rush
+                        </button>
+                        <button class="scenario-chip" data-scenario="normal" onclick="switchScenario('normal')">
+                            <span>🚗</span> Normal Day Flow
+                        </button>
+                        <button class="scenario-chip" data-scenario="heavy_monsoon" onclick="switchScenario('heavy_monsoon')">
+                            <span>🌧️</span> Monsoon Heavy Rain
+                        </button>
+                        <button class="scenario-chip" data-scenario="highway_diverted" onclick="switchScenario('highway_diverted')">
+                            <span>🚧</span> NH-48 Highway Diverted
+                        </button>
+                    </div>
+
+                    <!-- Time Scrubber -->
+                    <div class="time-slider-wrap">
+                        <span style="color: var(--text-muted);">Simulate Hour:</span>
+                        <input type="range" id="hour-slider" min="0" max="23" value="16" oninput="scrubTime(this.value)">
+                        <span class="mono" id="hour-display" style="color: var(--neon-cyan);">16:00</span>
+                        <button class="action-btn" style="padding: 0.2rem 0.5rem; font-size: 0.7rem;" onclick="resetToLiveTime()">Live</button>
+                    </div>
+
+                    <!-- Free Basemap Switcher (Zero API Keys) -->
+                    <div class="basemap-group">
+                        <button class="basemap-btn active" id="btn-bm-osm" onclick="setBaseMap('osm')" title="OpenStreetMap: Roads, SIT Campus, Landmarks">
+                            <span>🗺️</span> OpenStreetMap
+                        </button>
+                        <button class="basemap-btn" id="btn-bm-dark" onclick="setBaseMap('dark')" title="Esri Dark Canvas: High-Tech Cyber Dark Basemap">
+                            <span>🌃</span> Cyber Dark
+                        </button>
+                        <button class="basemap-btn" id="btn-bm-sat" onclick="setBaseMap('satellite')" title="Esri World Imagery: Real-world Campus Satellite Photo">
+                            <span>🛰️</span> Satellite
+                        </button>
+                    </div>
+
+                    <!-- Overlay Toggles -->
+                    <div style="display: flex; gap: 0.4rem;">
+                        <button class="action-btn" id="toggle-heatmap-btn" onclick="toggleHeatmapLayer()">
+                            <span>🔥</span> Heatmap On
+                        </button>
+                        <button class="action-btn" id="toggle-roads-btn" onclick="toggleRoadsLayer()">
+                            <span>🛣️</span> Corridors On
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Right Forecast & Traffic Intelligence Panel -->
+            <aside class="map-side-panel">
+
+                <!-- AI Traffic Advisory Card -->
+                <div class="advisory-box">
+                    <div class="advisory-title">
+                        <span>🤖</span> Predictive Traffic Intelligence
+                    </div>
+                    <div class="advisory-text" id="advisory-container">
+                        Loading predictive traffic analysis for SIT Tumkur...
+                    </div>
+                </div>
+
+                <!-- 15m / 30m / 60m Congestion Forecast Deck -->
+                <div class="forecast-card">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <h3 style="font-size: 0.95rem; font-weight: 800; color: var(--text-pure);">
+                            ⏱️ 30-Min Congestion Projection
+                        </h3>
+                        <span class="live-tag">AI REGRESSION</span>
+                    </div>
+
+                    <div id="forecast-list" style="display: flex; flex-direction: column; gap: 0.7rem; max-height: 480px; overflow-y: auto;">
+                        <!-- Dynamic Forecast Elements -->
+                    </div>
+                </div>
+
+            </aside>
+        </div>
+
+    </main>
+
+    <script>
+        // =========================================================================
+        // MAP INITIALIZATION (LEAFLET + ZERO-API-KEY BASEMAPS + HEATMAP)
+        // =========================================================================
+        const sitCenter = [13.3275, 77.1261];
+        const map = L.map('leaflet-map', {
+            center: sitCenter,
+            zoom: 15,
+            zoomControl: true,
+            preferCanvas: true
+        });
+
+        // 100% Free & Open Tile Providers (ZERO API Key, Zero Watermarks, 100% Guaranteed)
+        const baseLayers = {
+            'osm': L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a> contributors',
+                maxZoom: 19
+            }),
+            'dark': L.layerGroup([
+                L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}', {
+                    attribution: 'Tiles &copy; Esri &mdash; Esri, DeLorme, NAVTEQ',
+                    maxZoom: 16
+                }),
+                L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}', {
+                    attribution: '',
+                    maxZoom: 16
+                })
+            ]),
+            'satellite': L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+                attribution: 'Tiles &copy; Esri &mdash; Aerial Imagery of SIT Tumkur Campus',
+                maxZoom: 19
+            })
+        };
+
+        // Default to OpenStreetMap (crisp street lines and full SIT Tumkur campus layout)
+        let currentBaseMap = 'osm';
+        baseLayers[currentBaseMap].addTo(map);
+
+        function setBaseMap(type) {
+            if (!baseLayers[type]) return;
+            for (const [key, layer] of Object.entries(baseLayers)) {
+                if (map.hasLayer(layer)) {
+                    map.removeLayer(layer);
+                }
+            }
+            baseLayers[type].addTo(map);
+            currentBaseMap = type;
+
+            document.querySelectorAll('.basemap-btn').forEach(b => b.classList.remove('active'));
+            const activeBtn = document.getElementById(
+                type === 'osm' ? 'btn-bm-osm' :
+                type === 'dark' ? 'btn-bm-dark' : 'btn-bm-sat'
+            );
+            if (activeBtn) activeBtn.classList.add('active');
+            map.invalidateSize();
+        }
+
+        // Layers State
+        let heatLayer = null;
+        let roadsGeoJsonLayer = null;
+        let nodeMarkers = {};
+        let showHeatmap = true;
+        let showRoads = true;
+        let liveCameraMarker = null;
+
+        // Custom pulsing marker icon matching volume thresholds (Green / Orange / Red)
+        function createJunctionIcon(congestionPct) {
+            let color = '#10b981'; // Green: Free flow (<35%)
+            if (congestionPct >= 65) color = '#ef4444'; // Red: Heavy / Jam (>65%)
+            else if (congestionPct >= 35) color = '#f59e0b'; // Orange: Moderate (35%-65%)
+
+            return L.divIcon({
+                className: 'custom-pulse-marker',
+                html: `
+                    <div style="
+                        width: 18px;
+                        height: 18px;
+                        background: ${color};
+                        border: 3px solid #ffffff;
+                        border-radius: 50%;
+                        box-shadow: 0 0 14px ${color};
+                    "></div>
+                `,
+                iconSize: [18, 18],
+                iconAnchor: [9, 9]
+            });
+        }
+
+        function createCameraIcon(color) {
+            return L.divIcon({
+                className: 'custom-camera-beacon',
+                html: `
+                    <div style="position: relative; width: 34px; height: 34px; display: flex; align-items: center; justify-content: center;">
+                        <div style="position: absolute; width: 100%; height: 100%; border-radius: 50%; background: ${color}; opacity: 0.4; animation: cam-ping 1.4s ease-out infinite;"></div>
+                        <div style="position: relative; width: 24px; height: 24px; border-radius: 50%; background: ${color}; border: 2.5px solid #ffffff; box-shadow: 0 0 16px ${color}; display: flex; align-items: center; justify-content: center; font-size: 11px;">
+                            📹
+                        </div>
+                    </div>
+                `,
+                iconSize: [34, 34],
+                iconAnchor: [17, 17]
+            });
+        }
+
+        // =========================================================================
+        // DATA FETCHING & RENDERING
+        // =========================================================================
+        async function fetchTelemetry() {
+            try {
+                const res = await fetch('/api/map/telemetry');
+                if (!res.ok) return;
+                const data = await res.json();
+                renderTelemetry(data);
+            } catch (err) {
+                console.error("Telemetry fetch error:", err);
+            }
+        }
+
+        function renderTelemetry(data) {
+            // Update Top KPIs
+            document.getElementById('kpi-total-vehicles').textContent = data.summary.total_active_vehicles;
+            document.getElementById('kpi-mean-speed').innerHTML = `${data.summary.network_avg_speed} <small style="font-size: 1rem; color: var(--text-muted);">km/h</small>`;
+            document.getElementById('kpi-congestion-pct').textContent = `${data.summary.overall_congestion_pct}%`;
+            document.getElementById('kpi-bottleneck-node').textContent = data.summary.worst_bottleneck;
+            document.getElementById('kpi-bottleneck-pct').textContent = `${data.summary.worst_congestion_pct}% Load`;
+            document.getElementById('kpi-overall-los').textContent = `LOS ${data.summary.overall_los}`;
+
+            // Update Weather & Clock
+            const wElem = document.getElementById('weather-val');
+            if (data.weather === 'monsoon_rain') {
+                wElem.innerHTML = '🌧️ Heavy Rain';
+                wElem.style.color = 'var(--neon-rose)';
+            } else {
+                wElem.innerHTML = '☀️ Clear';
+                wElem.style.color = 'var(--neon-emerald)';
+            }
+            document.getElementById('sim-clock').textContent = new Date().toLocaleTimeString('en-US', { hour12: false });
+
+            // 1. Render / Update Leaflet Heatmap
+            if (showHeatmap) {
+                if (heatLayer) map.removeLayer(heatLayer);
+                heatLayer = L.heatLayer(data.heatmap_points, {
+                    radius: 26,
+                    blur: 18,
+                    maxZoom: 17,
+                    max: 1.0,
+                    gradient: {
+                        0.2: '#10b981',
+                        0.4: '#3b82f6',
+                        0.65: '#f59e0b',
+                        0.85: '#ff0055',
+                        1.0: '#a855f7'
+                    }
+                }).addTo(map);
+            }
+
+            // 2. Render Road Corridor Polylines
+            if (showRoads) {
+                if (roadsGeoJsonLayer) map.removeLayer(roadsGeoJsonLayer);
+                roadsGeoJsonLayer = L.geoJSON(data.segments_geojson, {
+                    style: function(feature) {
+                        return {
+                            color: feature.properties.color,
+                            weight: 5,
+                            opacity: 0.85,
+                            lineCap: 'round'
+                        };
+                    },
+                    onEachFeature: function(feature, layer) {
+                        const p = feature.properties;
+                        layer.bindPopup(`
+                            <div class="junction-popup">
+                                <h4>🛣️ ${p.name}</h4>
+                                <div class="popup-stat-row"><span>Status:</span><strong>${p.status}</strong></div>
+                                <div class="popup-stat-row"><span>Congestion:</span><strong>${p.congestion_pct}%</strong></div>
+                                <div class="popup-stat-row"><span>Avg Flow Speed:</span><strong>${p.avg_speed_kmh} km/h</strong></div>
+                                <div class="popup-stat-row"><span>Road Length:</span><span>${p.length_km} km (${p.lanes} Lanes)</span></div>
+                            </div>
+                        `);
+                    }
+                }).addTo(map);
+            }
+
+            // 3. Render Junction Interactive Markers
+            for (const [jid, node] of Object.entries(data.nodes)) {
+                if (!nodeMarkers[jid]) {
+                    const marker = L.marker([node.lat, node.lng], {
+                        icon: createJunctionIcon(node.congestion_pct)
+                    }).addTo(map);
+                    nodeMarkers[jid] = marker;
+                } else {
+                    nodeMarkers[jid].setIcon(createJunctionIcon(node.congestion_pct));
+                }
+
+                nodeMarkers[jid].bindPopup(`
+                    <div class="junction-popup">
+                        <h4>📍 ${node.name}</h4>
+                        <div style="font-size: 0.72rem; color: #64748b; margin-bottom: 0.4rem;">${node.description}</div>
+                        <div class="popup-stat-row"><span>Density / Congestion:</span><strong>${node.congestion_pct}%</strong></div>
+                        <div class="popup-stat-row"><span>Active Vehicles:</span><strong>${node.active_vehicles} / ${node.capacity}</strong></div>
+                        <div class="popup-stat-row"><span>Avg Vehicle Speed:</span><strong>${node.avg_speed} km/h</strong></div>
+                        <div class="popup-stat-row"><span>Queue Backlog:</span><strong>~${node.queue_meters} meters</strong></div>
+                        <div class="popup-badge" style="background: #e2e8f0; color: #0f172a;">Level of Service: LOS ${node.los}</div>
+                    </div>
+                `);
+            }
+
+            // 3b. Render Live Video Feed Camera Beacon (Green / Orange / Red)
+            if (data.live_camera && data.live_camera.active) {
+                const cam = data.live_camera;
+                const camIcon = createCameraIcon(cam.color);
+                if (!liveCameraMarker) {
+                    liveCameraMarker = L.marker([cam.lat, cam.lng], { icon: camIcon, zIndexOffset: 1000 }).addTo(map);
+                } else {
+                    liveCameraMarker.setLatLng([cam.lat, cam.lng]);
+                    liveCameraMarker.setIcon(camIcon);
+                }
+
+                liveCameraMarker.bindPopup(`
+                    <div class="junction-popup" style="min-width: 210px;">
+                        <h4>📹 ${cam.name}</h4>
+                        <div class="popup-badge" style="background: ${cam.color}; color: #ffffff; font-weight: 800;">
+                            LIVE VIDEO FEED: ${cam.status.toUpperCase()}
+                        </div>
+                        <div class="popup-stat-row"><span>Active In-Frame Vehicles:</span><strong>${cam.active_vehicles}</strong></div>
+                        <div class="popup-stat-row"><span>Measured Intensity:</span><strong>${cam.congestion_pct}%</strong></div>
+                        <div class="popup-stat-row"><span>Volume Status:</span><strong style="color: ${cam.color};">${cam.status}</strong></div>
+                        <div class="popup-stat-row"><span>Nearest Corridor:</span><span>${cam.nearest_node_name}</span></div>
+                        <div style="margin-top: 0.6rem; text-align: center; border-top: 1px solid #e2e8f0; padding-top: 0.4rem;">
+                            <a href="/" style="font-size: 0.72rem; color: #0284c7; text-decoration: none; font-weight: 700;">📡 Jump to Live Video Feed &rarr;</a>
+                        </div>
+                    </div>
+                `);
+            }
+
+            // 4. Render Forecast Panel
+            renderForecast(data.forecast);
+        }
+
+        function renderForecast(fc) {
+            if (!fc || !fc.predictions) return;
+
+            // Advisories
+            const advBox = document.getElementById('advisory-container');
+            if (fc.advisories && fc.advisories.length > 0) {
+                advBox.innerHTML = fc.advisories.map(a => `<div style="margin-bottom: 0.35rem;">${a}</div>`).join('');
+            }
+
+            // Forecast List
+            const list = document.getElementById('forecast-list');
+            list.innerHTML = Object.entries(fc.predictions).map(([jid, p]) => {
+                let barColor = '#10b981';
+                if (p.pred_30m >= 78) barColor = '#ff0055';
+                else if (p.pred_30m >= 55) barColor = '#f59e0b';
+                else if (p.pred_30m >= 35) barColor = '#3b82f6';
+
+                return `
+                    <div class="forecast-item">
+                        <div class="forecast-top">
+                            <span style="color: var(--text-pure);">${p.name}</span>
+                            <span class="mono" style="color: ${barColor};">${p.pred_30m}% (+30m)</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; font-size: 0.7rem; color: var(--text-muted); margin-top: 0.15rem;">
+                            <span>Current: ${p.current_congestion}%</span>
+                            <span>Speed: ${p.projected_speed_30m} km/h</span>
+                        </div>
+                        <div class="forecast-bar-track">
+                            <div class="forecast-bar-fill" style="width: ${p.pred_30m}%; background: ${barColor};"></div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // =========================================================================
+        // SCENARIO & TIME CONTROLLER
+        // =========================================================================
+        async function switchScenario(scName) {
+            document.querySelectorAll('.scenario-chip').forEach(c => {
+                c.classList.toggle('active', c.dataset.scenario === scName);
+            });
+            await fetch('/api/map/scenario', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ scenario: scName })
+            });
+            fetchTelemetry();
+        }
+
+        async function scrubTime(hour) {
+            document.getElementById('hour-display').textContent = `${hour.padStart(2, '0')}:00`;
+            await fetch('/api/map/scenario', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ hour: parseInt(hour, 10) })
+            });
+            fetchTelemetry();
+        }
+
+        async function resetToLiveTime() {
+            document.getElementById('hour-slider').value = new Date().getHours();
+            await fetch('/api/map/scenario', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ hour: null })
+            });
+            fetchTelemetry();
+        }
+
+        function toggleHeatmapLayer() {
+            showHeatmap = !showHeatmap;
+            const btn = document.getElementById('toggle-heatmap-btn');
+            if (showHeatmap) {
+                btn.innerHTML = '<span>🔥</span> Heatmap On';
+                btn.style.color = 'var(--text-primary)';
+            } else {
+                btn.innerHTML = '<span>🔥</span> Heatmap Off';
+                btn.style.color = 'var(--text-muted)';
+                if (heatLayer) map.removeLayer(heatLayer);
+            }
+            fetchTelemetry();
+        }
+
+        function toggleRoadsLayer() {
+            showRoads = !showRoads;
+            const btn = document.getElementById('toggle-roads-btn');
+            if (showRoads) {
+                btn.innerHTML = '<span>🛣️</span> Corridors On';
+                btn.style.color = 'var(--text-primary)';
+            } else {
+                btn.innerHTML = '<span>🛣️</span> Corridors Off';
+                btn.style.color = 'var(--text-muted)';
+                if (roadsGeoJsonLayer) map.removeLayer(roadsGeoJsonLayer);
+            }
+            fetchTelemetry();
+        }
+
+        document.getElementById('reset-sim-btn').addEventListener('click', async () => {
+            await fetch('/api/map/reset', { method: 'POST' });
+            document.querySelectorAll('.scenario-chip').forEach(c => {
+                c.classList.toggle('active', c.dataset.scenario === 'college_rush');
+            });
+            fetchTelemetry();
+        });
+
+        // =========================================================================
+        // THEME SWITCHER CONTROLLER
+        // =========================================================================
+        const themeBtn = document.getElementById('theme-toggle-btn');
+        const themeIcon = document.getElementById('theme-icon');
+        const themeText = document.getElementById('theme-text');
+        function syncTheme(t) {
+            if (themeIcon) themeIcon.textContent = t === 'light' ? '🌙' : '☀️';
+            if (themeText) themeText.textContent = t === 'light' ? 'Dark' : 'Light';
+        }
+        syncTheme(document.documentElement.getAttribute('data-theme') || 'dark');
+        if (themeBtn) {
+            themeBtn.addEventListener('click', () => {
+                const cur = document.documentElement.getAttribute('data-theme') || 'dark';
+                const next = cur === 'dark' ? 'light' : 'dark';
+                document.documentElement.setAttribute('data-theme', next);
+                localStorage.setItem('omnitraffic_theme', next);
+                syncTheme(next);
+            });
+        }
+
+        // Poll telemetry every 2.5 seconds
+        setInterval(fetchTelemetry, 2500);
+        fetchTelemetry();
+    </script>
+</body>
+</html>

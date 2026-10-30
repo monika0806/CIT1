@@ -136,12 +136,12 @@ def log_violation(track_id, violation_type, vehicle_type, license_plate, confide
         print(f"[DB Error log_violation]: {e}")
         return None, None
 
-def get_recent_violations(limit=20):
+def get_recent_violations(limit=25):
     try:
         conn = get_connection()
         cursor = conn.cursor()
         cursor.execute("""
-            SELECT v.*, e.challan_number, e.fine_amount
+            SELECT v.*, e.challan_number, e.fine_amount, e.status as challan_status
             FROM violations v
             LEFT JOIN echallans e ON v.id = e.violation_id
             ORDER BY v.id DESC LIMIT ?
@@ -152,6 +152,80 @@ def get_recent_violations(limit=20):
     except Exception as e:
         print(f"[DB Error get_recent_violations]: {e}")
         return []
+
+def get_challan_details(identifier):
+    """Fetch complete legal challan record by numeric ID or Challan Number"""
+    try:
+        conn = get_connection()
+        cursor = conn.cursor()
+        if str(identifier).isdigit():
+            cursor.execute("""
+                SELECT e.*, v.snapshot_path, v.vehicle_type, v.confidence, v.timestamp as violation_time
+                FROM echallans e
+                JOIN violations v ON e.violation_id = v.id
+                WHERE e.id = ? OR e.violation_id = ?
+            """, (int(identifier), int(identifier)))
+        else:
+            cursor.execute("""
+                SELECT e.*, v.snapshot_path, v.vehicle_type, v.confidence, v.timestamp as violation_time
+                FROM echallans e
+                JOIN violations v ON e.violation_id = v.id
+                WHERE e.challan_number = ? OR e.license_plate = ?
+            """, (str(identifier), str(identifier)))
+        row = cursor.fetchone()
+        conn.close()
+        return dict(row) if row else None
+    except Exception as e:
+        print(f"[DB Error get_challan_details]: {e}")
+        return None
+
+def search_challans(query_str):
+    """Search challans by license plate or challan number"""
+    try:
+        conn = get_connection()
+        cursor = conn.cursor()
+        q = f"%{query_str.strip().upper()}%"
+        cursor.execute("""
+            SELECT e.*, v.snapshot_path, v.vehicle_type, v.confidence, v.timestamp as violation_time
+            FROM echallans e
+            JOIN violations v ON e.violation_id = v.id
+            WHERE UPPER(e.license_plate) LIKE ? OR UPPER(e.challan_number) LIKE ?
+            ORDER BY e.id DESC LIMIT 50
+        """, (q, q))
+        rows = [dict(r) for r in cursor.fetchall()]
+        conn.close()
+        return rows
+    except Exception as e:
+        print(f"[DB Error search_challans]: {e}")
+        return []
+
+def pay_challan(challan_identifier, method="UPI_ONLINE"):
+    """Mark a challan as PAID with transaction record"""
+    try:
+        conn = get_connection()
+        cursor = conn.cursor()
+        now_str = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        tx_ref = f"TXN-{datetime.now().strftime('%Y%m%d%H%M')}-{int(datetime.now().timestamp())%10000}"
+        
+        if str(challan_identifier).isdigit():
+            cursor.execute("""
+                UPDATE echallans 
+                SET status = 'PAID' 
+                WHERE id = ? OR violation_id = ?
+            """, (int(challan_identifier), int(challan_identifier)))
+        else:
+            cursor.execute("""
+                UPDATE echallans 
+                SET status = 'PAID' 
+                WHERE challan_number = ?
+            """, (str(challan_identifier),))
+            
+        conn.commit()
+        conn.close()
+        return True, tx_ref
+    except Exception as e:
+        print(f"[DB Error pay_challan]: {e}")
+        return False, None
 
 def get_statistics():
     try:

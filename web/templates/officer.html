@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Officer Command Portal — Law Enforcement Registry</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;700&family=Outfit:wght@600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
+    <script>
+        (function() {
+            const savedTheme = localStorage.getItem('omnitraffic_theme') || 'dark';
+            document.documentElement.setAttribute('data-theme', savedTheme);
+        })();
+    </script>
+    <style>
+        .officer-nav-badge {
+            background: rgba(245, 158, 11, 0.15);
+            border: 1px solid rgba(245, 158, 11, 0.35);
+            color: var(--neon-amber);
+            font-size: 0.75rem;
+            font-weight: 700;
+            padding: 0.35rem 0.8rem;
+            border-radius: 999px;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+        .portal-switcher {
+            display: flex;
+            gap: 0.5rem;
+        }
+        .portal-btn {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-subtle);
+            color: var(--text-secondary);
+            padding: 0.45rem 0.9rem;
+            border-radius: var(--radius-sm);
+            font-size: 0.78rem;
+            font-weight: 600;
+            text-decoration: none;
+            transition: var(--transition-fast);
+        }
+        .portal-btn:hover, .portal-btn.active {
+            background: rgba(245, 158, 11, 0.15);
+            border-color: var(--neon-amber);
+            color: var(--neon-amber);
+        }
+        .table-card {
+            background: var(--bg-surface);
+            backdrop-filter: blur(24px);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-xl);
+            padding: 1.5rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.04);
+            display: flex;
+            flex-direction: column;
+            gap: 1.25rem;
+        }
+        .table-header-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+        .search-box-wrap {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            background: var(--bg-primary);
+            border: 1px solid var(--border-subtle);
+            padding: 0.45rem 1rem;
+            border-radius: var(--radius-md);
+            width: 320px;
+        }
+        .search-box-wrap input {
+            background: none;
+            border: none;
+            outline: none;
+            color: var(--text-pure);
+            font-size: 0.85rem;
+            width: 100%;
+        }
+        .registry-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.82rem;
+            text-align: left;
+        }
+        .registry-table th {
+            background: rgba(0, 0, 0, 0.03);
+            color: var(--text-muted);
+            padding: 0.85rem 1rem;
+            text-transform: uppercase;
+            font-size: 0.68rem;
+            letter-spacing: 0.08em;
+            font-weight: 700;
+            border-bottom: 1px solid var(--border-subtle);
+        }
+        .registry-table td {
+            padding: 0.95rem 1rem;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+            color: var(--text-primary);
+            vertical-align: middle;
+        }
+        .registry-table tr:hover td {
+            background: rgba(0, 0, 0, 0.02);
+        }
+        .table-thumb {
+            width: 48px;
+            height: 48px;
+            border-radius: 4px;
+            object-fit: cover;
+            background: #000;
+            border: 1px solid var(--border-subtle);
+        }
+        .receipt-action-btn {
+            background: #0f1e36;
+            border: 1px solid #0f1e36;
+            color: #ffffff;
+            padding: 0.4rem 0.85rem;
+            border-radius: var(--radius-sm);
+            font-size: 0.76rem;
+            font-weight: 700;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            transition: var(--transition-fast);
+        }
+        .receipt-action-btn:hover {
+            background: #1e3a8a;
+        }
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            transition: var(--transition-fast);
+        }
+        .receipt-action-btn:hover {
+            background: rgba(0, 245, 255, 0.25);
+            box-shadow: 0 0 12px rgba(0, 245, 255, 0.3);
+        }
+        .status-pill {
+            font-size: 0.68rem;
+            font-weight: 800;
+            padding: 0.2rem 0.55rem;
+            border-radius: 999px;
+            text-transform: uppercase;
+        }
+        .status-pill.paid {
+            background: rgba(16, 185, 129, 0.15);
+            color: var(--neon-emerald);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+        .status-pill.issued {
+            background: rgba(255, 0, 85, 0.15);
+            color: #ff4d79;
+            border: 1px solid rgba(255, 0, 85, 0.3);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Header Navigation -->
+    <header class="navbar">
+        <div class="brand">
+            <div class="brand-logo">
+                <span class="logo-core"></span>
+                <span class="logo-ring"></span>
+            </div>
+            <div class="brand-text">
+                <div class="brand-title">
+                    <span>OMNITRAFFIC</span>
+                    <span class="brand-tag">OFFICER HUB</span>
+                </div>
+                <div class="brand-sub">Traffic Police Law Enforcement Command & Registry</div>
+            </div>
+        </div>
+
+        <!-- Portal Switcher Links -->
+        <div class="portal-switcher">
+            <a href="/" class="portal-btn">
+                <span>📹</span> Live AI Surveillance
+            </a>
+            <a href="/officer" class="portal-btn active">
+                <span>👮</span> Officer Command
+            </a>
+            <a href="/citizen" class="portal-btn">
+                <span>👥</span> Citizen Portal
+            </a>
+            <a href="/map" class="portal-btn">
+                <span>🗺️</span> GIS Map
+            </a>
+            <a href="/routes" class="portal-btn">
+                <span>🧭</span> Route Planner
+            </a>
+        </div>
+
+        <div style="display: flex; align-items: center; gap: 0.65rem;">
+            <button class="theme-toggle-btn" id="theme-toggle-btn" title="Toggle Light / Dark Mode">
+                <span id="theme-icon">☀️</span>
+                <span id="theme-text">Theme</span>
+            </button>
+            <div class="officer-nav-badge">
+                <span>🛡️</span>
+                <span>INSP. R. SHARMA [TR-8821]</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="dashboard-container">
+
+        <!-- Officer Summary KPI Deck -->
+        <section class="kpi-deck">
+            <div class="kpi-card" style="--accent: var(--neon-blue);">
+                <div class="kpi-top">
+                    <span class="kpi-label">Total E-Challans</span>
+                    <div class="kpi-icon-wrap">📑</div>
+                </div>
+                <div class="kpi-main">
+                    <span class="kpi-num">{{ total_challans }}</span>
+                </div>
+                <div class="kpi-footer">
+                    <span class="entity-chip veh-chip">Registered Notices</span>
+                </div>
+            </div>
+
+            <div class="kpi-card" style="--accent: var(--neon-rose);">
+                <div class="kpi-top">
+                    <span class="kpi-label">Active Notices</span>
+                    <div class="kpi-icon-wrap">⚠️</div>
+                </div>
+                <div class="kpi-main">
+                    <span class="kpi-num">{{ pending_count }}</span>
+                </div>
+                <div class="kpi-footer">
+                    <span class="viol-chip">Payment Awaited</span>
+                </div>
+            </div>
+
+            <div class="kpi-card" style="--accent: var(--neon-emerald);">
+                <div class="kpi-top">
+                    <span class="kpi-label">Settled / Paid</span>
+                    <div class="kpi-icon-wrap">✅</div>
+                </div>
+                <div class="kpi-main">
+                    <span class="kpi-num">{{ paid_count }}</span>
+                </div>
+                <div class="kpi-footer">
+                    <span class="revenue-chip">Compliant Citations</span>
+                </div>
+            </div>
+
+            <div class="kpi-card" style="--accent: var(--neon-amber);">
+                <div class="kpi-top">
+                    <span class="kpi-label">Total Fine Value</span>
+                    <div class="kpi-icon-wrap">💳</div>
+                </div>
+                <div class="kpi-main">
+                    <span class="kpi-num">₹{{ "{:,.0f}".format(total_revenue) }}</span>
+                </div>
+                <div class="kpi-footer">
+                    <span class="los-badge">Revenue Tally</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- Official Registry Table Card -->
+        <section class="table-card">
+            <div class="table-header-row">
+                <div>
+                    <h3 style="font-size: 1.15rem; font-weight: 700; color: var(--text-pure);">Certified Law Enforcement Citation Registry</h3>
+                    <p style="font-size: 0.78rem; color: var(--text-secondary); margin-top: 0.2rem;">
+                        Official database of all computer-generated electronic summons under the Motor Vehicles Act.
+                    </p>
+                </div>
+
+                <div style="display: flex; gap: 0.75rem;">
+                    <div class="search-box-wrap">
+                        <span>🔍</span>
+                        <input type="text" id="officer-search" placeholder="Search by Plate or Challan No...">
+                    </div>
+                    <a href="/api/export_csv" class="action-btn export-btn">
+                        <span>📥</span> Export CSV
+                    </a>
+                </div>
+            </div>
+
+            <!-- Table of Violations -->
+            <div style="overflow-x: auto;">
+                <table class="registry-table">
+                    <thead>
+                        <tr>
+                            <th>Evidence</th>
+                            <th>Challan Number</th>
+                            <th>License Plate</th>
+                            <th>Offense Cited</th>
+                            <th>Vehicle Type</th>
+                            <th>Fine (INR)</th>
+                            <th>Timestamp</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="registry-tbody">
+                        {% for c in challans %}
+                        <tr>
+                            <td>
+                                <img class="table-thumb" src="{{ c.snapshot_path }}" alt="Photo" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=\\'http://www.w3.org/2000/svg\\' width=\\'48\\' height=\\'48\\'><rect width=\\'48\\' height=\\'48\\' fill=\\'%23111\\'/></svg>'">
+                            </td>
+                            <td class="mono" style="font-weight: 700; color: #93c5fd;">{{ c.challan_number }}</td>
+                            <td>
+                                <span class="mono" style="background: rgba(254, 240, 138, 0.15); color: #fde047; padding: 0.15rem 0.45rem; border-radius: 4px; border: 1px solid rgba(254, 240, 138, 0.3);">
+                                    {{ c.license_plate }}
+                                </span>
+                            </td>
+                            <td><strong>{{ c.violation_type | replace('_', ' ') }}</strong></td>
+                            <td>{{ (c.vehicle_type or 'Vehicle') | capitalize }}</td>
+                            <td class="mono" style="color: var(--neon-emerald); font-weight: 700;">₹{{ "{:,.0f}".format(c.fine_amount) if c.fine_amount else "1,000" }}</td>
+                            <td style="color: var(--text-muted); font-size: 0.75rem;">{{ c.issued_at or c.violation_time }}</td>
+                            <td>
+                                {% if c.status == 'PAID' %}
+                                    <span class="status-pill paid">PAID</span>
+                                {% else %}
+                                    <span class="status-pill issued">PENDING</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <a href="/receipt/{{ c.id }}" target="_blank" class="receipt-action-btn" title="View Certified Legal Receipt">
+                                    <span>🖨️</span> Print Legal Receipt
+                                </a>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="9" style="text-align: center; padding: 3rem; color: var(--text-muted);">
+                                🛡️ No citations registered in the active database.
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+    </main>
+
+    <script>
+        // Real-time client search filter
+        const searchInput = document.getElementById('officer-search');
+        const tbody = document.getElementById('registry-tbody');
+
+        searchInput.addEventListener('input', (e) => {
+            const query = e.target.value.toLowerCase().trim();
+            const rows = tbody.querySelectorAll('tr');
+            rows.forEach(row => {
+                const text = row.innerText.toLowerCase();
+        // Theme toggle controller
+        const themeBtn = document.getElementById('theme-toggle-btn');
+        const themeIcon = document.getElementById('theme-icon');
+        const themeText = document.getElementById('theme-text');
+        function syncTheme(t) {
+            if (themeIcon) themeIcon.textContent = t === 'light' ? '🌙' : '☀️';
+            if (themeText) themeText.textContent = t === 'light' ? 'Dark' : 'Light';
+        }
+        syncTheme(document.documentElement.getAttribute('data-theme') || 'dark');
+        if (themeBtn) {
+            themeBtn.addEventListener('click', () => {
+                const cur = document.documentElement.getAttribute('data-theme') || 'dark';
+                const next = cur === 'dark' ? 'light' : 'dark';
+                document.documentElement.setAttribute('data-theme', next);
+                localStorage.setItem('omnitraffic_theme', next);
+                syncTheme(next);
+            });
+        }
+    </script>
+</body>
+</html>

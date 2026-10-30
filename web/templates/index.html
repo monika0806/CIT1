@@ -4,220 +4,377 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>OmniTraffic AI — Next-Gen Smart Traffic & Law Enforcement Hub</title>
+    <!-- Google Fonts: Outfit, Plus Jakarta Sans, JetBrains Mono -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
+    <script>
+        (function() {
+            const savedTheme = localStorage.getItem('omnitraffic_theme') || 'dark';
+            document.documentElement.setAttribute('data-theme', savedTheme);
+        })();
+    </script>
 </head>
 <body>
 
-    <!-- Header Navigation -->
+    <!-- Ambient Background Lighting Glows -->
+    <div class="ambient-glow glow-1"></div>
+    <div class="ambient-glow glow-2"></div>
+    <div class="ambient-glow glow-3"></div>
+
+    <!-- Top Command Navigation Bar -->
     <header class="navbar">
         <div class="brand">
-            <div class="brand-icon">🚦</div>
+            <div class="brand-logo">
+                <span class="logo-core"></span>
+                <span class="logo-ring"></span>
+            </div>
             <div class="brand-text">
-                <h1>OmniTraffic AI</h1>
-                <span>Smart Traffic Vision & Automated Enforcement</span>
+                <div class="brand-title">
+                    <span>OMNITRAFFIC</span>
+                    <span class="brand-tag">AI CORE v2.5</span>
+                </div>
+                <div class="brand-sub">Intelligent Vision & Autonomous Law Enforcement</div>
             </div>
         </div>
 
-        <div class="nav-actions">
-            <div class="live-badge">
-                <span class="pulse-dot"></span>
-                <span>SYSTEM LIVE</span>
+        <!-- Center System Clock & Metrics -->
+        <div class="header-center">
+            <div class="telemetry-pill">
+                <span class="status-indicator live"></span>
+                <span class="pill-label">ENGINE:</span>
+                <span class="pill-val" id="engine-fps">-- FPS</span>
             </div>
-            <button class="toggle-btn" id="reset-btn" title="Reset Tripwire and Track Stats">
-                <span>🔄</span> Reset Counters
+            <div class="telemetry-pill">
+                <span class="pill-label">LATENCY:</span>
+                <span class="pill-val">~12ms</span>
+            </div>
+            <div class="telemetry-pill clock-pill">
+                <span class="pill-icon">🕒</span>
+                <span class="pill-val" id="system-clock">--:--:--</span>
+            </div>
+        </div>
+
+        <!-- Right Quick Actions & Portal Switcher -->
+        <div class="nav-actions">
+            <div style="display: flex; gap: 0.4rem; margin-right: 0.5rem;">
+                <a href="/" class="action-btn" style="background: rgba(0, 245, 255, 0.15); border-color: var(--neon-cyan); color: var(--neon-cyan); text-decoration: none; font-weight: 700;">
+                    <span>📡</span> Live Feed
+                </a>
+                <a href="/officer" class="action-btn" style="background: rgba(245, 158, 11, 0.12); border-color: rgba(245, 158, 11, 0.4); color: var(--neon-amber); text-decoration: none; font-weight: 700;">
+                    <span>🛡️</span> Officer Portal
+                </a>
+                <a href="/citizen" class="action-btn" style="background: rgba(16, 185, 129, 0.12); border-color: rgba(16, 185, 129, 0.4); color: var(--neon-emerald); text-decoration: none; font-weight: 700;">
+                    <span>👤</span> Citizen Portal
+                </a>
+                <a href="/map" class="action-btn" style="background: rgba(139, 92, 246, 0.12); border-color: rgba(139, 92, 246, 0.4); color: var(--neon-purple); text-decoration: none; font-weight: 700;">
+                    <span>🗺️</span> GIS Map
+                </a>
+                <a href="/routes" class="action-btn" style="background: rgba(236, 72, 153, 0.12); border-color: rgba(236, 72, 153, 0.4); color: #f43f5e; text-decoration: none; font-weight: 700;">
+                    <span>🧭</span> Route Planner
+                </a>
+            </div>
+            <button class="theme-toggle-btn" id="theme-toggle-btn" title="Toggle Light / Dark Mode">
+                <span id="theme-icon">☀️</span>
+                <span id="theme-text">Light Mode</span>
+            </button>
+            <button class="action-btn" id="audio-toggle-btn" title="Toggle Audio Siren/Ping Alerts">
+                <span id="audio-icon">🔔</span>
+                <span id="audio-text">Audio On</span>
+            </button>
+            <a href="/api/export_csv" class="action-btn export-btn" title="Download E-Challan Infraction Report">
+                <span>📥</span> Export CSV
+            </a>
+            <button class="action-btn danger-btn" id="reset-btn" title="Reset Tripwire and Detection Counters">
+                <span>🔄</span> Reset State
             </button>
         </div>
     </header>
 
-    <!-- Main Container -->
+    <!-- Main Container Layout -->
     <main class="dashboard-container">
 
-        <!-- Top KPI Cards -->
-        <section class="kpi-grid">
-            <div class="kpi-card" style="--card-accent: var(--accent-cyan);">
-                <div class="kpi-icon" style="color: var(--accent-cyan);">🚘</div>
-                <div class="kpi-info">
-                    <h4>Vehicles In Frame</h4>
-                    <div class="kpi-value" id="kpi-vehicles">0</div>
-                    <div class="kpi-sub" id="kpi-fps">-- FPS</div>
+        <!-- 5-Card Real-Time KPI Deck -->
+        <section class="kpi-deck">
+            <!-- KPI 1: Active Road Entities -->
+            <div class="kpi-card" style="--accent: var(--neon-cyan);">
+                <div class="kpi-top">
+                    <span class="kpi-label">Active Entities</span>
+                    <div class="kpi-icon-wrap">🚘</div>
+                </div>
+                <div class="kpi-main">
+                    <span class="kpi-num" id="kpi-vehicles">0</span>
+                </div>
+                <div class="kpi-footer">
+                    <span class="entity-chip veh-chip"><span id="chip-veh-count">0</span> Vehicles</span>
+                    <span class="entity-chip ped-chip"><span id="chip-ped-count">0</span> Pedestrians</span>
                 </div>
             </div>
 
-            <div class="kpi-card" style="--card-accent: var(--accent-blue);">
-                <div class="kpi-icon" style="color: var(--accent-blue);">🔢</div>
-                <div class="kpi-info">
-                    <h4>Total Tripwire Count</h4>
-                    <div class="kpi-value" id="kpi-counted">0</div>
-                    <div class="kpi-sub">Bidirectional Crossing</div>
+            <!-- KPI 2: Bidirectional Tripwire -->
+            <div class="kpi-card" style="--accent: var(--neon-blue);">
+                <div class="kpi-top">
+                    <span class="kpi-label">Tripwire Crossing</span>
+                    <div class="kpi-icon-wrap">⚡</div>
+                </div>
+                <div class="kpi-main">
+                    <span class="kpi-num" id="kpi-counted">0</span>
+                </div>
+                <div class="kpi-footer">
+                    <span class="flow-indicator down">↓ <span id="kpi-in-count">0</span> Inflow</span>
+                    <span class="flow-indicator up">↑ <span id="kpi-out-count">0</span> Outflow</span>
                 </div>
             </div>
 
-            <div class="kpi-card" style="--card-accent: var(--accent-amber);">
-                <div class="kpi-icon" style="color: var(--accent-amber);">📊</div>
-                <div class="kpi-info">
-                    <h4>Traffic Density</h4>
-                    <div class="kpi-value" id="kpi-density">0%</div>
-                    <div class="kpi-sub" id="kpi-los">LOS A (Free Flow)</div>
+            <!-- KPI 3: Congestion & Level of Service -->
+            <div class="kpi-card" style="--accent: var(--neon-amber);">
+                <div class="kpi-top">
+                    <span class="kpi-label">Traffic Density</span>
+                    <div class="kpi-icon-wrap">📊</div>
+                </div>
+                <div class="kpi-main">
+                    <span class="kpi-num" id="kpi-density">0%</span>
+                </div>
+                <div class="kpi-footer">
+                    <span class="los-badge" id="kpi-los">LOS A • Free Flow</span>
                 </div>
             </div>
 
-            <div class="kpi-card" style="--card-accent: var(--accent-rose);">
-                <div class="kpi-icon" style="color: var(--accent-rose);">🚨</div>
-                <div class="kpi-info">
-                    <h4>Enforcement Violations</h4>
-                    <div class="kpi-value" id="kpi-violations">0</div>
-                    <div class="kpi-sub">Automated E-Challans</div>
+            <!-- KPI 4: Law Enforcement Incidents -->
+            <div class="kpi-card" style="--accent: var(--neon-rose);">
+                <div class="kpi-top">
+                    <span class="kpi-label">Active Violations</span>
+                    <div class="kpi-icon-wrap">🚨</div>
+                </div>
+                <div class="kpi-main">
+                    <span class="kpi-num" id="kpi-violations">0</span>
+                </div>
+                <div class="kpi-footer">
+                    <span class="viol-chip">Automated Detection</span>
+                </div>
+            </div>
+
+            <!-- KPI 5: Total Penalty Fines -->
+            <div class="kpi-card" style="--accent: var(--neon-emerald);">
+                <div class="kpi-top">
+                    <span class="kpi-label">Challan Revenue</span>
+                    <div class="kpi-icon-wrap">💳</div>
+                </div>
+                <div class="kpi-main">
+                    <span class="kpi-num" id="kpi-revenue">₹0</span>
+                </div>
+                <div class="kpi-footer">
+                    <span class="revenue-chip">Direct Enforcement</span>
                 </div>
             </div>
         </section>
 
-        <!-- Main Content Area -->
-        <div class="content-grid">
+        <!-- Main Workspace Split: Viewport + Analytics Deck -->
+        <div class="workspace-grid">
 
-            <!-- Video Stream & Controls -->
-            <section class="video-card">
-                <div class="card-header">
-                    <div class="card-title">
-                        <span>📹</span> Live AI Surveillance Stream
+            <!-- Primary Video Surveillance Stage -->
+            <section class="surveillance-stage">
+                
+                <!-- Stage Header / Camera Info Bar -->
+                <div class="stage-header">
+                    <div class="cam-info">
+                        <span class="rec-dot"></span>
+                        <span class="cam-name" id="cam-title">CAM-01: HIGHWAY ARTERIAL</span>
+                        <span class="cam-tag" id="cam-location-badge" style="background: rgba(0, 245, 255, 0.15); color: var(--neon-cyan); border-color: rgba(0, 245, 255, 0.3);">📍 SIT Main Gate (13.3276, 77.1259)</span>
+                        <span class="cam-tag">LIVE FEED</span>
                     </div>
-                    <div style="display: flex; gap: 0.5rem; align-items: center;">
-                        <span style="font-size: 0.78rem; color: var(--text-muted);">Source:</span>
-                        <select class="select-source" id="source-select">
-                            <option value="sample1">🎬 Sample Traffic 1 (Urban Highway)</option>
-                            <option value="sample2">🎬 Sample Traffic 2 (Dense Arterial)</option>
-                            <option value="webcam">📷 Local Webcam Feed</option>
-                            <option value="upload">⬆️ Upload Custom Video...</option>
-                        </select>
-                        <input type="file" id="video-upload" accept="video/*" style="display: none;">
+
+                    <div class="stage-actions">
+                        <button class="stage-btn" id="snapshot-btn" title="Download Screenshot">
+                            <span>📷</span> Snapshot
+                        </button>
+                        <button class="stage-btn" id="fullscreen-btn" title="Toggle Fullscreen">
+                            <span>⛶</span> Fullscreen
+                        </button>
                     </div>
                 </div>
 
-                <!-- Video Viewport -->
-                <div class="video-container">
-                    <img class="stream-video" src="{{ url_for('video_feed') }}" alt="Traffic Stream">
+                <!-- Video Frame Enclosure -->
+                <div class="video-enclosure" id="video-frame-wrap">
+                    <!-- Corner Reticles for Cyber Surveillance Look -->
+                    <div class="reticle top-left"></div>
+                    <div class="reticle top-right"></div>
+                    <div class="reticle bottom-left"></div>
+                    <div class="reticle bottom-right"></div>
+
+                    <!-- Video Element -->
+                    <img class="stream-element" src="{{ url_for('video_feed') }}" alt="Surveillance Stream" id="main-video">
                 </div>
 
-                <!-- Controls & Toggles Toolbar -->
-                <div class="control-bar">
-                    <div class="toggle-group">
-                        <button class="toggle-btn active" id="toggle-boxes">
-                            <span>📦</span> Bounding Boxes
+                <!-- Quick-Toggle Control Ribbon -->
+                <div class="ribbon-bar">
+                    <div class="ribbon-group">
+                        <button class="ribbon-pill active" id="toggle-boxes">
+                            <span class="pill-dot"></span> Bounding Boxes
                         </button>
-                        <button class="toggle-btn" id="toggle-heatmap">
-                            <span>🔥</span> Thermal Heatmap
+                        <button class="ribbon-pill" id="toggle-heatmap">
+                            <span class="pill-dot"></span> Thermal Heatmap
                         </button>
-                        <button class="toggle-btn active" id="toggle-tripwire">
-                            <span>⚡</span> Tripwire Line
+                        <button class="ribbon-pill active" id="toggle-tripwire">
+                            <span class="pill-dot"></span> Tripwire Line
                         </button>
-                        <button class="toggle-btn active" id="toggle-tracks">
-                            <span>🆔</span> Track IDs
+                        <button class="ribbon-pill active" id="toggle-tracks">
+                            <span class="pill-dot"></span> Trajectory IDs
                         </button>
-                        <button class="toggle-btn active" id="toggle-violations">
-                            <span>⚠️</span> Violation Badges
+                        <button class="ribbon-pill active" id="toggle-violations">
+                            <span class="pill-dot"></span> Enforcement Badges
                         </button>
                     </div>
 
-                    <div style="display: flex; align-items: center; gap: 0.5rem;">
-                        <span style="font-size: 0.78rem; color: var(--text-muted);">Flow Vector:</span>
-                        <select class="select-source" id="direction-select">
+                    <!-- Flow Vector Dropdown -->
+                    <div class="flow-selector-wrap">
+                        <span class="select-label">Road Flow:</span>
+                        <select class="cyber-select" id="direction-select">
                             <option value="bidirectional_split" selected>🔄 Two-Way Divided (Left Up / Right Down)</option>
-                            <option value="down">⬇️ One-Way (All Down)</option>
-                            <option value="up">⬆️ One-Way (All Up)</option>
+                            <option value="auto">✨ Auto-Detect Flow (Consensus)</option>
+                            <option value="down">⬇️ One-Way Flow (Down)</option>
+                            <option value="up">⬆️ One-Way Flow (Up)</option>
                             <option value="split_left_down_right_up">🔄 Split (Left Down / Right Up)</option>
                         </select>
                     </div>
                 </div>
+
+                <!-- Source Switcher Deck -->
+                <div class="source-deck">
+                    <div class="source-label">Surveillance Feeds:</div>
+                    <div class="source-chips">
+                        <button class="source-chip active" data-src="sample1">
+                            <span>🛣️</span> Sample 1: Highway Corridor
+                        </button>
+                        <button class="source-chip" data-src="sample2">
+                            <span>🏙️</span> Sample 2: Urban Arterial
+                        </button>
+                        <button class="source-chip" data-src="webcam">
+                            <span>📷</span> Live Camera
+                        </button>
+                        <button class="source-chip upload-chip" id="upload-trigger">
+                            <span>⬆️</span> Upload Custom Video
+                        </button>
+                    </div>
+                    <input type="file" id="video-upload" accept="video/*" style="display: none;">
+                </div>
+
             </section>
 
-            <!-- Sidebar: Enforcement Feed & Vehicle Classification -->
-            <aside class="sidebar-col">
+            <!-- Right Deck: Multi-Tab Analytics & Enforcement -->
+            <aside class="analytics-deck">
 
-                <!-- Vehicle Classification Breakdown -->
-                <div class="sidebar-card">
-                    <div class="card-header">
-                        <div class="card-title">
-                            <span>🚗</span> Real-Time Classification
-                        </div>
+                <!-- Tab Header Navigation -->
+                <div class="tab-header">
+                    <button class="tab-btn active" data-tab="tab-violations">
+                        <span>🚨</span> E-Challan Feed (<span id="viol-badge-count">0</span>)
+                    </button>
+                    <button class="tab-btn" data-tab="tab-classification">
+                        <span>🚗</span> Fleet Radar
+                    </button>
+                </div>
+
+                <!-- Tab 1: Live E-Challan Feed -->
+                <div class="tab-pane active" id="tab-violations">
+                    <div class="pane-action-bar">
+                        <span class="pane-sub">Real-Time Law Enforcement Log</span>
+                        <button class="clear-link" id="clear-violations-btn">Clear Feed</button>
                     </div>
 
-                    <div class="class-bar-group">
-                        <div class="class-bar-row">
-                            <div class="class-label-row">
-                                <span>Cars</span>
-                                <span id="val-car">0 (0%)</span>
-                            </div>
-                            <div class="class-progress-bg">
-                                <div class="class-progress-fill" id="fill-car" style="background: var(--accent-amber); width: 0%;"></div>
-                            </div>
-                        </div>
-
-                        <div class="class-bar-row">
-                            <div class="class-label-row">
-                                <span>Motorcycles</span>
-                                <span id="val-motorcycle">0 (0%)</span>
-                            </div>
-                            <div class="class-progress-bg">
-                                <div class="class-progress-fill" id="fill-motorcycle" style="background: var(--accent-cyan); width: 0%;"></div>
-                            </div>
-                        </div>
-
-                        <div class="class-bar-row">
-                            <div class="class-label-row">
-                                <span>Buses</span>
-                                <span id="val-bus">0 (0%)</span>
-                            </div>
-                            <div class="class-progress-bg">
-                                <div class="class-progress-fill" id="fill-bus" style="background: var(--accent-blue); width: 0%;"></div>
-                            </div>
-                        </div>
-
-                        <div class="class-bar-row">
-                            <div class="class-label-row">
-                                <span>Trucks</span>
-                                <span id="val-truck">0 (0%)</span>
-                            </div>
-                            <div class="class-progress-bg">
-                                <div class="class-progress-fill" id="fill-truck" style="background: var(--accent-violet); width: 0%;"></div>
-                            </div>
-                        </div>
-
-                        <div class="class-bar-row">
-                            <div class="class-label-row">
-                                <span>Bicycles</span>
-                                <span id="val-bicycle">0 (0%)</span>
-                            </div>
-                            <div class="class-progress-bg">
-                                <div class="class-progress-fill" id="fill-bicycle" style="background: var(--accent-emerald); width: 0%;"></div>
-                            </div>
-                        </div>
-
-                        <div class="class-bar-row">
-                            <div class="class-label-row">
-                                <span>Pedestrians</span>
-                                <span id="val-person">0 (0%)</span>
-                            </div>
-                            <div class="class-progress-bg">
-                                <div class="class-progress-fill" id="fill-person" style="background: #94a3b8; width: 0%;"></div>
-                            </div>
+                    <div class="violations-scroll" id="violations-container">
+                        <div class="empty-state">
+                            <div class="empty-shield">🛡️</div>
+                            <h4>All Clear — No Violations</h4>
+                            <p>Active surveillance monitoring two-wheelers, wrong-way traffic, and road occupancy in real-time.</p>
                         </div>
                     </div>
                 </div>
 
-                <!-- Live Violations Feed -->
-                <div class="sidebar-card" style="flex: 1;">
-                    <div class="card-header">
-                        <div class="card-title">
-                            <span>🚨</span> Automated E-Challan Feed
+                <!-- Tab 2: Fleet Classification Radar -->
+                <div class="tab-pane" id="tab-classification">
+                    <div class="pane-action-bar">
+                        <span class="pane-sub">Active Road Occupancy by Class</span>
+                        <span class="live-tag">LIVE IN-FRAME</span>
+                    </div>
+
+                    <div class="radar-list">
+                        <!-- Car -->
+                        <div class="radar-item">
+                            <div class="radar-header">
+                                <span class="radar-name"><span>🚘</span> Passenger Cars</span>
+                                <span class="radar-val" id="val-car">0 (0%)</span>
+                            </div>
+                            <div class="radar-track">
+                                <div class="radar-fill" id="fill-car" style="--bar-color: linear-gradient(90deg, #f59e0b, #fbbf24); width: 0%;"></div>
+                            </div>
+                        </div>
+
+                        <!-- Motorcycle -->
+                        <div class="radar-item">
+                            <div class="radar-header">
+                                <span class="radar-name"><span>🏍️</span> Motorcycles & Scooters</span>
+                                <span class="radar-val" id="val-motorcycle">0 (0%)</span>
+                            </div>
+                            <div class="radar-track">
+                                <div class="radar-fill" id="fill-motorcycle" style="--bar-color: linear-gradient(90deg, #00f5ff, #00b4d8); width: 0%;"></div>
+                            </div>
+                        </div>
+
+                        <!-- Bus -->
+                        <div class="radar-item">
+                            <div class="radar-header">
+                                <span class="radar-name"><span>🚌</span> Public Transit Buses</span>
+                                <span class="radar-val" id="val-bus">0 (0%)</span>
+                            </div>
+                            <div class="radar-track">
+                                <div class="radar-fill" id="fill-bus" style="--bar-color: linear-gradient(90deg, #3b82f6, #60a5fa); width: 0%;"></div>
+                            </div>
+                        </div>
+
+                        <!-- Truck -->
+                        <div class="radar-item">
+                            <div class="radar-header">
+                                <span class="radar-name"><span>🚛</span> Heavy Freight Trucks</span>
+                                <span class="radar-val" id="val-truck">0 (0%)</span>
+                            </div>
+                            <div class="radar-track">
+                                <div class="radar-fill" id="fill-truck" style="--bar-color: linear-gradient(90deg, #8b5cf6, #c084fc); width: 0%;"></div>
+                            </div>
+                        </div>
+
+                        <!-- Bicycle -->
+                        <div class="radar-item">
+                            <div class="radar-header">
+                                <span class="radar-name"><span>🚲</span> Bicycles & Non-Motor</span>
+                                <span class="radar-val" id="val-bicycle">0 (0%)</span>
+                            </div>
+                            <div class="radar-track">
+                                <div class="radar-fill" id="fill-bicycle" style="--bar-color: linear-gradient(90deg, #10b981, #34d399); width: 0%;"></div>
+                            </div>
+                        </div>
+
+                        <!-- Pedestrian -->
+                        <div class="radar-item">
+                            <div class="radar-header">
+                                <span class="radar-name"><span>🚶</span> Pedestrians on Foot</span>
+                                <span class="radar-val" id="val-person">0 (0%)</span>
+                            </div>
+                            <div class="radar-track">
+                                <div class="radar-fill" id="fill-person" style="--bar-color: linear-gradient(90deg, #ec4899, #f472b6); width: 0%;"></div>
+                            </div>
                         </div>
                     </div>
 
-                    <div class="violations-list" id="violations-container">
-                        <div class="empty-state">
-                            <span style="font-size: 2rem;">🛡️</span>
-                            <p>Monitoring active lanes in real-time.<br>Violations will appear here automatically.</p>
+                    <!-- Level of Service Guide -->
+                    <div class="los-guide-box">
+                        <div class="guide-title">Highway Capacity Service Guide</div>
+                        <div class="guide-grid">
+                            <span class="guide-pill a">LOS A (0-4)</span>
+                            <span class="guide-pill b">LOS B (5-9)</span>
+                            <span class="guide-pill c">LOS C (10-15)</span>
+                            <span class="guide-pill d">LOS D (16-22)</span>
+                            <span class="guide-pill e">LOS E (23-30)</span>
+                            <span class="guide-pill f">LOS F (&gt;30)</span>
                         </div>
                     </div>
                 </div>
@@ -228,6 +385,139 @@
 
     </main>
 
+    <!-- Modal for Detailed Evidence Snapshot / E-Challan Preview -->
+    <div class="modal-backdrop" id="evidence-modal">
+        <div class="modal-card">
+            <div class="modal-header">
+                <div class="modal-title">
+                    <span>📑</span> Official E-Challan Notice
+                </div>
+                <button class="modal-close" id="modal-close-btn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="modal-img-wrap">
+                    <img id="modal-img" src="" alt="Evidence Snapshot">
+                </div>
+                <div class="modal-info-col">
+                    <div class="challan-badge" id="modal-badge">VIOLATION</div>
+                    <div class="info-row">
+                        <span class="info-k">Challan No:</span>
+                        <span class="info-v mono" id="modal-challan">--</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-k">License Plate:</span>
+                        <span class="info-v mono plate-highlight" id="modal-plate">--</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-k">Infraction Type:</span>
+                        <span class="info-v" id="modal-violation">--</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-k">Statutory Penalty:</span>
+                        <span class="info-v fine" id="modal-fine">₹--</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-k">Detection Time:</span>
+                        <span class="info-v" id="modal-time">--</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-k">Statute Code:</span>
+                        <span class="info-v code-statute">MV Act Sec 129 / 177 / 184</span>
+                    </div>
+                    <a id="modal-receipt-link" href="#" target="_blank" class="modal-print-btn" style="text-decoration: none;">
+                        <span>🖨️</span> Open Legal Certified Receipt
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for Custom Video Upload with GIS Location Tagging -->
+    <div class="modal-backdrop" id="upload-modal">
+        <div class="modal-card" style="max-width: 580px;">
+            <div class="modal-header">
+                <div class="modal-title">
+                    <span>📡</span> Deploy Video Feed with GIS Location Tag
+                </div>
+                <button class="modal-close" id="upload-modal-close">&times;</button>
+            </div>
+            <div class="modal-body" style="display: flex; flex-direction: column; gap: 1.1rem; padding: 1.25rem;">
+                
+                <!-- File Picker Dropzone -->
+                <div>
+                    <label style="font-size: 0.8rem; font-weight: 700; color: var(--text-pure); display: block; margin-bottom: 0.4rem;">
+                        1. Select Surveillance Video File:
+                    </label>
+                    <div id="upload-dropzone" style="border: 2px dashed var(--border-subtle); border-radius: var(--radius-lg); padding: 1.25rem; text-align: center; cursor: pointer; background: var(--chip-bg); transition: var(--transition-fast);">
+                        <div style="font-size: 2rem; margin-bottom: 0.3rem;">📹</div>
+                        <div id="dropzone-text" style="font-size: 0.82rem; color: var(--text-secondary); font-weight: 600;">
+                            Click to Browse or Drag & Drop Video File (.mp4, .avi, .mov)
+                        </div>
+                        <input type="file" id="video-file-input" accept="video/*" style="display: none;">
+                    </div>
+                </div>
+
+                <!-- Location Selector & GPS Auto Capture -->
+                <div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem;">
+                        <label style="font-size: 0.8rem; font-weight: 700; color: var(--text-pure);">
+                            2. GIS Location & Intersection Coordinates:
+                        </label>
+                        <button type="button" id="btn-auto-gps" class="action-btn" style="padding: 0.25rem 0.6rem; font-size: 0.72rem; color: var(--neon-cyan); border-color: var(--neon-cyan);">
+                            <span>📍</span> Auto-Detect GPS
+                        </button>
+                    </div>
+
+                    <!-- Preset Junction Dropdown -->
+                    <div style="margin-bottom: 0.75rem;">
+                        <select id="location-preset-select" class="flow-select" style="width: 100%;">
+                            <option value="custom">-- Choose SIT Tumkur Location Preset or Enter GPS --</option>
+                            <option value="J1" data-lat="13.3276" data-lng="77.1259" selected>🏫 SIT Main Gate (BH Road Arterial)</option>
+                            <option value="J3" data-lat="13.3342" data-lng="77.1352">🛣️ Batawadi Junction (NH-48 Feeder / Toll link)</option>
+                            <option value="J4" data-lat="13.3238" data-lng="77.1285">🏢 SIT Back Gate & Engineering Hostel Zone</option>
+                            <option value="J2" data-lat="13.3308" data-lng="77.1228">🏘️ Gandhi Nagar / SIT 2nd Cross Commercial</option>
+                            <option value="J5" data-lat="13.3182" data-lng="77.1425">🛕 Kyathsandra Road / Siddaganga Math Access</option>
+                            <option value="J6" data-lat="13.3355" data-lng="77.1165">⭕ SS Puram / Ashoka Road Roundabout</option>
+                            <option value="J7" data-lat="13.3392" data-lng="77.1085">🚆 Tumakuru Central Railway Corridor</option>
+                            <option value="J8" data-lat="13.3420" data-lng="77.1020">🏛️ Town Hall Municipal Circle (City Core)</option>
+                        </select>
+                    </div>
+
+                    <!-- Lat / Lng Inputs -->
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 0.75rem;">
+                        <div>
+                            <label style="font-size: 0.72rem; color: var(--text-muted); display: block; margin-bottom: 0.2rem;">Latitude:</label>
+                            <input type="number" step="0.000001" id="camera-lat" value="13.3276" class="flow-select" style="width: 100%; font-family: monospace;">
+                        </div>
+                        <div>
+                            <label style="font-size: 0.72rem; color: var(--text-muted); display: block; margin-bottom: 0.2rem;">Longitude:</label>
+                            <input type="number" step="0.000001" id="camera-lng" value="77.1259" class="flow-select" style="width: 100%; font-family: monospace;">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label style="font-size: 0.72rem; color: var(--text-muted); display: block; margin-bottom: 0.2rem;">Surveillance Camera Name / Identifier:</label>
+                        <input type="text" id="camera-name-input" value="SIT Main Gate CCTV 01" class="flow-select" style="width: 100%;">
+                    </div>
+                </div>
+
+                <!-- GIS Sync Notice -->
+                <div style="font-size: 0.72rem; color: var(--text-secondary); background: rgba(0, 245, 255, 0.08); border-left: 3px solid var(--neon-cyan); padding: 0.5rem 0.75rem; border-radius: 4px;">
+                    ℹ️ Real-time video detection vehicle volume will be mapped automatically to this GPS location on the <strong>GIS Congestion Heatmap</strong> and will adjust live routing navigation dynamically.
+                </div>
+
+                <!-- Action Buttons -->
+                <div style="display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 0.5rem;">
+                    <button type="button" id="upload-cancel-btn" class="action-btn">Cancel</button>
+                    <button type="button" id="upload-submit-btn" class="action-btn" style="background: var(--neon-cyan); color: #050811; font-weight: 800; border-color: var(--neon-cyan);">
+                        <span>⬆️</span> Deploy & Stream Feed
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Client Controller Script -->
     <script src="{{ url_for('static', filename='js/app.js') }}"></script>
 </body>
 </html>
