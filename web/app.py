@@ -7,12 +7,14 @@ import os
 import cv2
 import time
 import json
+from datetime import datetime
 from flask import Flask, render_template, Response, jsonify, request, send_from_directory
 from werkzeug.utils import secure_filename
 
 from core.pipeline import MasterTrafficPipeline
 from core.map_simulator import sit_simulator
 from core.parking_analyzer import narrow_street_analyzer
+from core.safety_analyzer import women_safety_analyzer
 from database.db import (
     get_recent_violations, get_statistics, get_challan_details,
     search_challans, pay_challan, get_connection
@@ -488,6 +490,96 @@ def api_parking_upload_image():
         return jsonify(result)
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
+
+# -------------------------------------------------------------
+# Women's Solo Travel & Road Safety Perception (SafeWalk AI)
+# -------------------------------------------------------------
+@app.route("/api/safety/corridors")
+def api_safety_corridors():
+    """Returns list of monitored street corridors with lighting & safety baseline data."""
+    return jsonify(women_safety_analyzer.get_monitored_corridors())
+
+@app.route("/api/safety/audit")
+def api_safety_audit():
+    """Evaluates safety score of a monitored corridor based on time and simulation parameters."""
+    corridor_id = request.args.get("corridor_id", "COR-01")
+    hour_val = request.args.get("hour")
+    try:
+        hour = int(hour_val) if hour_val is not None and hour_val != "" else datetime.now().hour
+    except (ValueError, TypeError):
+        hour = datetime.now().hour
+    result = women_safety_analyzer.audit_corridor_by_id(corridor_id, simulated_hour=hour)
+    return jsonify(result)
+
+@app.route("/api/safety/analyze-image", methods=["POST"])
+def api_safety_analyze_image():
+    """
+    Accepts an uploaded image or sample street photo, detects pedestrians and vehicles via YOLO,
+    computes ambient illumination & darkness, and returns the Women's SafeWalk Index + annotated visual.
+    """
+    hour_val = request.form.get("hour") or (request.json.get("hour") if request.is_json else None)
+    try:
+        hour = int(hour_val) if hour_val is not None and hour_val != "" else datetime.now().hour
+    except (ValueError, TypeError):
+        hour = datetime.now().hour
+    street_name = request.form.get("street_name") or (request.json.get("street_name") if request.is_json else None) or "Tumakuru Urban Corridor"
+    sample_name = request.form.get("sample_name") or (request.json.get("sample_name") if request.is_json else None)
+    
+    if "file" in request.files and request.files["file"].filename != "":
+        file = request.files["file"]
+        filename = secure_filename(file.filename)
+        save_path = os.path.join(app.config["UPLOAD_FOLDER"], f"safety_{int(time.time()*1000)}_{filename}")
+        file.save(save_path)
+    elif sample_name:
+        sample_path = os.path.join(BASE_DIR, "web", "static", "safety_samples", secure_filename(sample_name))
+        if not os.path.exists(sample_path):
+            sample_path = os.path.join(BASE_DIR, "sample_data", secure_filename(sample_name))
+        if not os.path.exists(sample_path):
+            return jsonify({"status": "error", "message": f"Sample image {sample_name} not found"}), 404
+        save_path = sample_path
+    else:
+        # Default sample
+        default_sample = os.path.join(BASE_DIR, "web", "static", "safety_samples", "busy_safe_street.jpg")
+        if os.path.exists(default_sample):
+            save_path = default_sample
+        else:
+            return jsonify({"status": "error", "message": "No image provided"}), 400
+
+    try:
+        result = women_safety_analyzer.analyze_uploaded_image(
+            image_path=save_path,
+            hour_of_day=hour,
+            street_name=street_name
+        )
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+@app.route("/api/safety/sos-dispatch", methods=["POST"])
+def api_safety_sos_dispatch():
+    """Simulates immediate police patrol unit (Tumakuru Pink Patrol) dispatch for women in danger."""
+    data = request.json or {}
+    corridor_name = data.get("corridor_name", "Unknown Tumakuru Corridor")
+    lat = data.get("lat", 13.3276)
+    lng = data.get("lng", 77.1259)
+    
+    dispatch_id = f"SOS-TK-{int(time.time()*1000)}"
+    return jsonify({
+        "status": "success",
+        "dispatch_id": dispatch_id,
+        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "unit_assigned": "Tumakuru Pink Patrol Unit #04",
+        "eta_mins": 3,
+        "patrol_vehicle": "Mahindra Bolero Emergency Response Vehicle (KA-06-G-112)",
+        "officer_in_charge": "ASI Shailaja M. (Tumakuru City Police)",
+        "contact_helpline": "Dial 112 / 1091",
+        "location": {
+            "corridor": corridor_name,
+            "lat": lat,
+            "lng": lng
+        },
+        "message": f"Emergency patrol dispatched to {corridor_name}. High priority beacon activated."
+    })
 
 @app.route("/api/upload", methods=["POST"])
 def upload_file():
