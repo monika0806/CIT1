@@ -46,6 +46,8 @@ export default function LiveSurveillancePage() {
   const [direction, setDirection] = useState('bidirectional_split');
   const [activeSource, setActiveSource] = useState('sample1');
   const [audioEnabled, setAudioEnabled] = useState(false);
+  const [isResettingCounts, setIsResettingCounts] = useState(false);
+  const [resetSuccess, setResetSuccess] = useState(false);
 
   // Modals
   const [isLocationModalOpen, setIsLocationModalOpen] = useState(false);
@@ -80,10 +82,13 @@ export default function LiveSurveillancePage() {
         if (data && Object.keys(data).length > 0) {
           setTelemetry(prev => {
             if (
-              prev?.vehicles_active === data.vehicles_active &&
-              prev?.cumulative_count === data.cumulative_count &&
-              prev?.spatial_density_pct === data.spatial_density_pct &&
-              prev?.violations_count === data.violations_count
+              prev &&
+              prev.total_counted === data.total_counted &&
+              prev.in_count === data.in_count &&
+              prev.out_count === data.out_count &&
+              prev.vehicle_count_visible === data.vehicle_count_visible &&
+              prev.density?.congestion_pct === data.density?.congestion_pct &&
+              prev.density?.level_of_service === data.density?.level_of_service
             ) {
               return prev;
             }
@@ -203,11 +208,38 @@ export default function LiveSurveillancePage() {
   };
 
   const handleResetCounts = async () => {
+    setIsResettingCounts(true);
     try {
-      await fetch('/api/reset_counts', { method: 'POST' });
-      setTelemetry({});
+      const res = await fetch('/api/reset_counts', { method: 'POST' });
+      const json = await res.json();
+      if (json?.telemetry) {
+        setTelemetry(json.telemetry);
+      } else {
+        setTelemetry(prev => ({
+          ...prev,
+          total_counted: 0,
+          in_count: 0,
+          out_count: 0,
+          classification_cumulative: { in: {}, out: {} }
+        }));
+      }
+      setResetSuccess(true);
+      setTimeout(() => setResetSuccess(false), 2500);
+
+      // Immediately fetch fresh telemetry right after to ensure sync
+      try {
+        const freshRes = await fetch('/api/telemetry');
+        if (freshRes.ok) {
+          const freshData = await freshRes.json();
+          if (freshData && Object.keys(freshData).length > 0) {
+            setTelemetry(freshData);
+          }
+        }
+      } catch (_) {}
     } catch (e) {
-      console.error(e);
+      console.error('Error resetting counts:', e);
+    } finally {
+      setIsResettingCounts(false);
     }
   };
 
@@ -541,11 +573,23 @@ export default function LiveSurveillancePage() {
           {/* Action Footer */}
           <div className="deck-footer" style={{ display: 'flex', gap: '0.5rem', marginTop: '0.75rem' }}>
             <button 
+              id="reset-counts-btn"
               onClick={handleResetCounts}
+              disabled={isResettingCounts}
               className="action-btn" 
-              style={{ flex: 1 }}
+              title="Reset Tripwire & Cumulative Vehicle Counters to Zero"
+              style={{ 
+                flex: 1,
+                borderColor: resetSuccess ? 'var(--neon-emerald)' : 'var(--border-subtle)',
+                color: resetSuccess ? 'var(--neon-emerald)' : 'inherit',
+                background: resetSuccess ? 'rgba(16, 185, 129, 0.15)' : undefined,
+                fontWeight: resetSuccess ? 600 : undefined,
+                cursor: isResettingCounts ? 'wait' : 'pointer',
+                transition: 'all 0.25s ease'
+              }}
             >
-              <span>🔄</span> Reset Local Counts
+              <span>{isResettingCounts ? '⏳' : resetSuccess ? '✅' : '🔄'}</span>{' '}
+              {isResettingCounts ? 'Resetting...' : resetSuccess ? 'Counts Reset to 0!' : 'Reset Local Counts'}
             </button>
             <button 
               onClick={() => setAudioEnabled(prev => !prev)}

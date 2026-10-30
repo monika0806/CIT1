@@ -864,8 +864,27 @@ def reset_counts():
     global current_telemetry
     pipeline.counter.reset()
     pipeline.wrong_way_analyzer.reset()
-    current_telemetry.clear()
-    return jsonify({"status": "success"})
+    current_telemetry = {
+        "fps": round(pipeline.fps, 1),
+        "frame_number": pipeline.frame_count,
+        "vehicle_count_visible": 0,
+        "total_counted": 0,
+        "in_count": 0,
+        "out_count": 0,
+        "classification_visible": {},
+        "classification_cumulative": {
+            "in": {},
+            "out": {}
+        },
+        "density": {
+            "congestion_pct": 0.0,
+            "level_of_service": "A",
+            "status": "Free Flow"
+        },
+        "active_violations": [],
+        "location": active_camera_info
+    }
+    return jsonify({"status": "success", "telemetry": current_telemetry})
 
 # -------------------------------------------------------------
 # SPA React Frontend & Static File Servicing
