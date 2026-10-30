@@ -521,6 +521,39 @@ def api_safety_tumkur_streets():
     )
     return jsonify(result)
 
+@app.route("/api/safety/landmarks", methods=["GET"])
+def api_safety_landmarks():
+    """Returns list of selectable Tumakuru landmarks & hubs for walking route planning."""
+    return jsonify(women_safety_analyzer.get_safety_landmarks())
+
+@app.route("/api/safety/plan-safe-route", methods=["GET", "POST"])
+def api_safety_plan_safe_route():
+    """
+    Plans and compares the direct walking path vs. AI SafeLit recommended route
+    between a given source and destination in Tumakuru, assessing risk rates, dark spots,
+    and streetlight illumination.
+    """
+    if request.method == "POST" and request.is_json:
+        source = request.json.get("source", "LM-01")
+        dest = request.json.get("destination", "LM-02")
+        hour_val = request.json.get("hour")
+    else:
+        source = request.args.get("source") or request.form.get("source") or "LM-01"
+        dest = request.args.get("destination") or request.form.get("destination") or "LM-02"
+        hour_val = request.args.get("hour") or request.form.get("hour")
+
+    try:
+        hour = int(hour_val) if hour_val is not None and hour_val != "" else datetime.now().hour
+    except (ValueError, TypeError):
+        hour = datetime.now().hour
+
+    result = women_safety_analyzer.plan_safe_walking_route(
+        origin_query=source,
+        dest_query=dest,
+        simulated_hour=hour
+    )
+    return jsonify(result)
+
 @app.route("/api/safety/audit")
 def api_safety_audit():
     """Evaluates safety score of a monitored corridor based on time and simulation parameters."""
