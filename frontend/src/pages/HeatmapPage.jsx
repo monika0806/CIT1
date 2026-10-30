@@ -14,14 +14,31 @@ export default function HeatmapPage() {
   const [timeHour, setTimeHour] = useState(17);
   const [speedMultiplier, setSpeedMultiplier] = useState(1.0);
   const [activeLayers, setActiveLayers] = useState({ corridors: true, heatmap: true, camera: true });
+  const [basemap, setBasemap] = useState('dark');
 
   const mapContainerRef = useRef(null);
   const mapInstanceRef = useRef(null);
   const layersRef = useRef({
+    baseLayers: null,
     segments: null,
     junctions: null,
     cameraMarker: null
   });
+
+  const handleBasemapChange = (type) => {
+    setBasemap(type);
+    const map = mapInstanceRef.current;
+    const baseLayers = layersRef.current.baseLayers;
+    if (!map || !baseLayers || !baseLayers[type]) return;
+
+    Object.values(baseLayers).forEach(layer => {
+      if (map.hasLayer(layer)) {
+        map.removeLayer(layer);
+      }
+    });
+
+    baseLayers[type].addTo(map);
+  };
 
   // 1. Initialize Leaflet Map
   useEffect(() => {
@@ -35,11 +52,29 @@ export default function HeatmapPage() {
         attributionControl: false
       });
 
-      // Dark CartoDB Tiles (Zero API Key required)
-      L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-        maxZoom: 19,
-        subdomains: 'abcd'
-      }).addTo(map);
+      // 100% Free & Open Tile Providers (ZERO API Key, Zero Watermarks)
+      const baseLayers = {
+        dark: L.layerGroup([
+          L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}', {
+            maxZoom: 16,
+            attribution: 'Tiles &copy; Esri &mdash; Esri, DeLorme, NAVTEQ'
+          }),
+          L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}', {
+            maxZoom: 16
+          })
+        ]),
+        osm: L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          maxZoom: 19,
+          attribution: '&copy; OpenStreetMap contributors'
+        }),
+        satellite: L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+          maxZoom: 19,
+          attribution: 'Tiles &copy; Esri &mdash; Aerial Imagery'
+        })
+      };
+
+      baseLayers.dark.addTo(map);
+      layersRef.current.baseLayers = baseLayers;
 
       layersRef.current.segments = L.featureGroup().addTo(map);
       layersRef.current.junctions = L.featureGroup().addTo(map);
@@ -269,6 +304,55 @@ export default function HeatmapPage() {
         {/* Leaflet Map Stage */}
         <section className="surveillance-stage" style={{ padding: '0', overflow: 'hidden', height: '680px', position: 'relative' }}>
           <div ref={mapContainerRef} style={{ width: '100%', height: '100%', background: '#080c14' }} />
+
+          {/* Floating Basemap Switcher */}
+          <div style={{ position: 'absolute', top: '1rem', right: '1rem', zIndex: 500, display: 'flex', gap: '0.4rem', background: 'rgba(13, 19, 31, 0.92)', padding: '0.35rem 0.5rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-subtle)', backdropFilter: 'blur(8px)' }}>
+            <button 
+              onClick={() => handleBasemapChange('dark')}
+              style={{
+                padding: '0.3rem 0.6rem',
+                fontSize: '0.72rem',
+                fontWeight: 700,
+                borderRadius: '4px',
+                border: 'none',
+                cursor: 'pointer',
+                background: basemap === 'dark' ? 'var(--neon-cyan)' : 'transparent',
+                color: basemap === 'dark' ? '#050811' : 'var(--text-secondary)'
+              }}
+            >
+              🌙 Dark Gray
+            </button>
+            <button 
+              onClick={() => handleBasemapChange('osm')}
+              style={{
+                padding: '0.3rem 0.6rem',
+                fontSize: '0.72rem',
+                fontWeight: 700,
+                borderRadius: '4px',
+                border: 'none',
+                cursor: 'pointer',
+                background: basemap === 'osm' ? 'var(--neon-cyan)' : 'transparent',
+                color: basemap === 'osm' ? '#050811' : 'var(--text-secondary)'
+              }}
+            >
+              🗺️ Street OSM
+            </button>
+            <button 
+              onClick={() => handleBasemapChange('satellite')}
+              style={{
+                padding: '0.3rem 0.6rem',
+                fontSize: '0.72rem',
+                fontWeight: 700,
+                borderRadius: '4px',
+                border: 'none',
+                cursor: 'pointer',
+                background: basemap === 'satellite' ? 'var(--neon-cyan)' : 'transparent',
+                color: basemap === 'satellite' ? '#050811' : 'var(--text-secondary)'
+              }}
+            >
+              🛰️ Satellite
+            </button>
+          </div>
 
           {/* Map Legend Overlay */}
           <div style={{ position: 'absolute', bottom: '1.25rem', left: '1.25rem', background: 'rgba(13, 19, 31, 0.92)', border: '1px solid var(--border-subtle)', backdropFilter: 'blur(10px)', padding: '0.75rem 1rem', borderRadius: 'var(--radius-md)', zIndex: 500, fontSize: '0.75rem' }}>
