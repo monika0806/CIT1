@@ -7,6 +7,22 @@ import './LiveSurveillancePage.css';
 
 const STANDARD_CATEGORIES = ['car', 'motorcycle', 'bus', 'truck', 'bicycle', 'pedestrian'];
 
+const FALLBACK_EVIDENCE_IMG = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='70' height='52' viewBox='0 0 70 52'><rect width='70' height='52' fill='%231e293b'/><rect x='2' y='2' width='66' height='48' rx='4' fill='%230f172a' stroke='%23334155'/><text x='50%25' y='46%25' dominant-baseline='middle' text-anchor='middle' fill='%2338bdf8' font-size='9' font-family='sans-serif' font-weight='bold'>CITATION</text><text x='50%25' y='64%25' dominant-baseline='middle' text-anchor='middle' fill='%2364748b' font-size='8' font-family='sans-serif'>EVIDENCE</text></svg>";
+
+const formatViolationTime = (ts) => {
+  if (!ts) return 'Just now';
+  if (typeof ts === 'number') {
+    return new Date(ts > 1e11 ? ts : ts * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  }
+  if (typeof ts === 'string') {
+    const parsed = new Date(ts.replace(/-/g, '/'));
+    if (!isNaN(parsed.getTime())) {
+      return parsed.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    }
+  }
+  return 'Just now';
+};
+
 export default function LiveSurveillancePage() {
   const [telemetry, setTelemetry] = useState({});
   const [violations, setViolations] = useState([]);
@@ -54,7 +70,7 @@ export default function LiveSurveillancePage() {
       .catch(err => console.warn('Could not load camera location:', err));
   }, []);
 
-  // 2. Poll telemetry (every 1s)
+  // 2. Poll telemetry (every 1s, with value comparison to avoid DOM repaints)
   useEffect(() => {
     const timer = setInterval(async () => {
       try {
@@ -62,9 +78,19 @@ export default function LiveSurveillancePage() {
         if (!res.ok) return;
         const data = await res.json();
         if (data && Object.keys(data).length > 0) {
-          setTelemetry(data);
+          setTelemetry(prev => {
+            if (
+              prev?.vehicles_active === data.vehicles_active &&
+              prev?.cumulative_count === data.cumulative_count &&
+              prev?.spatial_density_pct === data.spatial_density_pct &&
+              prev?.violations_count === data.violations_count
+            ) {
+              return prev;
+            }
+            return data;
+          });
           if (data.location && data.location.address) {
-            setCameraLocation(data.location);
+            setCameraLocation(prev => prev?.address === data.location.address ? prev : data.location);
           }
         }
       } catch (e) {
@@ -74,7 +100,7 @@ export default function LiveSurveillancePage() {
     return () => clearInterval(timer);
   }, []);
 
-  // 3. Poll violations (every 1.5s)
+  // 3. Poll violations (only trigger state update if records actually changed)
   useEffect(() => {
     const timer = setInterval(async () => {
       try {
@@ -91,12 +117,22 @@ export default function LiveSurveillancePage() {
               }
             });
           }
-          setViolations(data);
+          setViolations(prev => {
+            if (
+              prev.length === data.length &&
+              prev.length > 0 &&
+              prev[0]?.id === data[0]?.id &&
+              prev[0]?.status === data[0]?.status
+            ) {
+              return prev; // Same array reference -> Prevents DOM repaint & blinking!
+            }
+            return data;
+          });
         }
       } catch (e) {
         // fail silently
       }
-    }, 1500);
+    }, 1800);
     return () => clearInterval(timer);
   }, [audioEnabled]);
 
@@ -437,12 +473,12 @@ export default function LiveSurveillancePage() {
                         >
                           <div className="violation-thumb-wrap">
                             <img 
-                              src={v.snapshot_path || ''} 
+                              src={v.snapshot_path || FALLBACK_EVIDENCE_IMG} 
                               alt="Violation Snapshot" 
                               className="violation-thumb"
                               onError={(e) => { 
                                 e.currentTarget.onerror = null; 
-                                e.currentTarget.src = '/static/images/placeholder.jpg'; 
+                                e.currentTarget.src = FALLBACK_EVIDENCE_IMG; 
                               }}
                             />
                             <span className="zoom-hint">🔍 Expand</span>
@@ -458,7 +494,7 @@ export default function LiveSurveillancePage() {
                               {v.license_plate || 'PLATE PENDING'}
                             </div>
                             <div className="violation-time">
-                              {v.timestamp ? new Date(v.timestamp * 1000).toLocaleTimeString() : 'Just now'}
+                              {formatViolationTime(v.timestamp)}
                             </div>
                           </div>
                         </div>

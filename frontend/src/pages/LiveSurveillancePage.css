@@ -531,20 +531,22 @@
   transform: translateX(2px);
 }
 
-.violation-thumb {
+.violation-thumb-wrap {
+  position: relative;
   width: 70px;
   height: 52px;
   border-radius: var(--radius-sm, 6px);
   overflow: hidden;
-  background: #000;
+  background: #1e293b;
   border: 1px solid var(--border-subtle);
   flex-shrink: 0;
 }
 
-.violation-thumb img {
+.violation-thumb {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  display: block;
 }
 
 .violation-details {
