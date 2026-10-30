@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OmniTraffic AI — Next-Gen Smart Traffic & Law Enforcement Hub</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
+</head>
+<body>
+
+    <!-- Header Navigation -->
+    <header class="navbar">
+        <div class="brand">
+            <div class="brand-icon">🚦</div>
+            <div class="brand-text">
+                <h1>OmniTraffic AI</h1>
+                <span>Smart Traffic Vision & Automated Enforcement</span>
+            </div>
+        </div>
+
+        <div class="nav-actions">
+            <div class="live-badge">
+                <span class="pulse-dot"></span>
+                <span>SYSTEM LIVE</span>
+            </div>
+            <button class="toggle-btn" id="reset-btn" title="Reset Tripwire and Track Stats">
+                <span>🔄</span> Reset Counters
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="dashboard-container">
+
+        <!-- Top KPI Cards -->
+        <section class="kpi-grid">
+            <div class="kpi-card" style="--card-accent: var(--accent-cyan);">
+                <div class="kpi-icon" style="color: var(--accent-cyan);">🚘</div>
+                <div class="kpi-info">
+                    <h4>Vehicles In Frame</h4>
+                    <div class="kpi-value" id="kpi-vehicles">0</div>
+                    <div class="kpi-sub" id="kpi-fps">-- FPS</div>
+                </div>
+            </div>
+
+            <div class="kpi-card" style="--card-accent: var(--accent-blue);">
+                <div class="kpi-icon" style="color: var(--accent-blue);">🔢</div>
+                <div class="kpi-info">
+                    <h4>Total Tripwire Count</h4>
+                    <div class="kpi-value" id="kpi-counted">0</div>
+                    <div class="kpi-sub">Bidirectional Crossing</div>
+                </div>
+            </div>
+
+            <div class="kpi-card" style="--card-accent: var(--accent-amber);">
+                <div class="kpi-icon" style="color: var(--accent-amber);">📊</div>
+                <div class="kpi-info">
+                    <h4>Traffic Density</h4>
+                    <div class="kpi-value" id="kpi-density">0%</div>
+                    <div class="kpi-sub" id="kpi-los">LOS A (Free Flow)</div>
+                </div>
+            </div>
+
+            <div class="kpi-card" style="--card-accent: var(--accent-rose);">
+                <div class="kpi-icon" style="color: var(--accent-rose);">🚨</div>
+                <div class="kpi-info">
+                    <h4>Enforcement Violations</h4>
+                    <div class="kpi-value" id="kpi-violations">0</div>
+                    <div class="kpi-sub">Automated E-Challans</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Main Content Area -->
+        <div class="content-grid">
+
+            <!-- Video Stream & Controls -->
+            <section class="video-card">
+                <div class="card-header">
+                    <div class="card-title">
+                        <span>📹</span> Live AI Surveillance Stream
+                    </div>
+                    <div style="display: flex; gap: 0.5rem; align-items: center;">
+                        <span style="font-size: 0.78rem; color: var(--text-muted);">Source:</span>
+                        <select class="select-source" id="source-select">
+                            <option value="sample1">🎬 Sample Traffic 1 (Urban Highway)</option>
+                            <option value="sample2">🎬 Sample Traffic 2 (Dense Arterial)</option>
+                            <option value="webcam">📷 Local Webcam Feed</option>
+                            <option value="upload">⬆️ Upload Custom Video...</option>
+                        </select>
+                        <input type="file" id="video-upload" accept="video/*" style="display: none;">
+                    </div>
+                </div>
+
+                <!-- Video Viewport -->
+                <div class="video-container">
+                    <img class="stream-video" src="{{ url_for('video_feed') }}" alt="Traffic Stream">
+                </div>
+
+                <!-- Controls & Toggles Toolbar -->
+                <div class="control-bar">
+                    <div class="toggle-group">
+                        <button class="toggle-btn active" id="toggle-boxes">
+                            <span>📦</span> Bounding Boxes
+                        </button>
+                        <button class="toggle-btn" id="toggle-heatmap">
+                            <span>🔥</span> Thermal Heatmap
+                        </button>
+                        <button class="toggle-btn active" id="toggle-tripwire">
+                            <span>⚡</span> Tripwire Line
+                        </button>
+                        <button class="toggle-btn active" id="toggle-tracks">
+                            <span>🆔</span> Track IDs
+                        </button>
+                        <button class="toggle-btn active" id="toggle-violations">
+                            <span>⚠️</span> Violation Badges
+                        </button>
+                    </div>
+
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                        <span style="font-size: 0.78rem; color: var(--text-muted);">Flow Vector:</span>
+                        <select class="select-source" id="direction-select">
+                            <option value="bidirectional_split" selected>🔄 Two-Way Divided (Left Up / Right Down)</option>
+                            <option value="down">⬇️ One-Way (All Down)</option>
+                            <option value="up">⬆️ One-Way (All Up)</option>
+                            <option value="split_left_down_right_up">🔄 Split (Left Down / Right Up)</option>
+                        </select>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Sidebar: Enforcement Feed & Vehicle Classification -->
+            <aside class="sidebar-col">
+
+                <!-- Vehicle Classification Breakdown -->
+                <div class="sidebar-card">
+                    <div class="card-header">
+                        <div class="card-title">
+                            <span>🚗</span> Real-Time Classification
+                        </div>
+                    </div>
+
+                    <div class="class-bar-group">
+                        <div class="class-bar-row">
+                            <div class="class-label-row">
+                                <span>Cars</span>
+                                <span id="val-car">0 (0%)</span>
+                            </div>
+                            <div class="class-progress-bg">
+                                <div class="class-progress-fill" id="fill-car" style="background: var(--accent-amber); width: 0%;"></div>
+                            </div>
+                        </div>
+
+                        <div class="class-bar-row">
+                            <div class="class-label-row">
+                                <span>Motorcycles</span>
+                                <span id="val-motorcycle">0 (0%)</span>
+                            </div>
+                            <div class="class-progress-bg">
+                                <div class="class-progress-fill" id="fill-motorcycle" style="background: var(--accent-cyan); width: 0%;"></div>
+                            </div>
+                        </div>
+
+                        <div class="class-bar-row">
+                            <div class="class-label-row">
+                                <span>Buses</span>
+                                <span id="val-bus">0 (0%)</span>
+                            </div>
+                            <div class="class-progress-bg">
+                                <div class="class-progress-fill" id="fill-bus" style="background: var(--accent-blue); width: 0%;"></div>
+                            </div>
+                        </div>
+
+                        <div class="class-bar-row">
+                            <div class="class-label-row">
+                                <span>Trucks</span>
+                                <span id="val-truck">0 (0%)</span>
+                            </div>
+                            <div class="class-progress-bg">
+                                <div class="class-progress-fill" id="fill-truck" style="background: var(--accent-violet); width: 0%;"></div>
+                            </div>
+                        </div>
+
+                        <div class="class-bar-row">
+                            <div class="class-label-row">
+                                <span>Bicycles</span>
+                                <span id="val-bicycle">0 (0%)</span>
+                            </div>
+                            <div class="class-progress-bg">
+                                <div class="class-progress-fill" id="fill-bicycle" style="background: var(--accent-emerald); width: 0%;"></div>
+                            </div>
+                        </div>
+
+                        <div class="class-bar-row">
+                            <div class="class-label-row">
+                                <span>Pedestrians</span>
+                                <span id="val-person">0 (0%)</span>
+                            </div>
+                            <div class="class-progress-bg">
+                                <div class="class-progress-fill" id="fill-person" style="background: #94a3b8; width: 0%;"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Live Violations Feed -->
+                <div class="sidebar-card" style="flex: 1;">
+                    <div class="card-header">
+                        <div class="card-title">
+                            <span>🚨</span> Automated E-Challan Feed
+                        </div>
+                    </div>
+
+                    <div class="violations-list" id="violations-container">
+                        <div class="empty-state">
+                            <span style="font-size: 2rem;">🛡️</span>
+                            <p>Monitoring active lanes in real-time.<br>Violations will appear here automatically.</p>
+                        </div>
+                    </div>
+                </div>
+
+            </aside>
+
+        </div>
+
+    </main>
+
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>
