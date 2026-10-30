@@ -1,0 +1,107 @@
+/* ==========================================================================
+   ROADPULSE AI — VIDEO UPLOAD MODAL COMPONENT STYLES
+   ========================================================================== */
+
+.upload-modal-card {
+  max-width: 680px;
+  width: 92%;
+  background: var(--bg-surface-elevated, #162034);
+  border: 1px solid var(--border-strong, rgba(255, 255, 255, 0.18));
+  border-radius: var(--radius-xl, 18px);
+  overflow: hidden;
+  box-shadow: 0 25px 70px rgba(0, 0, 0, 0.75);
+}
+
+.upload-form-body {
+  padding: 1.4rem 1.6rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.15rem;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+.upload-dropzone {
+  border: 2px dashed var(--border-glow, rgba(0, 245, 255, 0.35));
+  background: rgba(0, 245, 255, 0.03);
+  border-radius: var(--radius-md, 10px);
+  padding: 1.8rem 1.2rem;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.upload-dropzone:hover,
+.upload-dropzone.dragging {
+  background: rgba(0, 245, 255, 0.08);
+  border-color: var(--neon-cyan);
+  box-shadow: 0 0 20px rgba(0, 245, 255, 0.2);
+}
+
+.upload-icon-circle {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  background: rgba(0, 245, 255, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  color: var(--neon-cyan);
+}
+
+.upload-prompt-text {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--text-pure);
+}
+
+.upload-sub-text {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.selected-file-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.35rem 0.85rem;
+  background: rgba(16, 185, 129, 0.15);
+  border: 1px solid rgba(16, 185, 129, 0.4);
+  color: var(--neon-emerald);
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.btn-upload-submit {
+  background: linear-gradient(135deg, #8b5cf6, #ec4899);
+  color: #ffffff;
+  border: none;
+  padding: 0.8rem 1.5rem;
+  border-radius: var(--radius-sm, 6px);
+  font-weight: 700;
+  font-size: 0.92rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  box-shadow: 0 4px 18px rgba(139, 92, 246, 0.35);
+  transition: all 0.2s ease;
+}
+
+.btn-upload-submit:hover:not(:disabled) {
+  filter: brightness(1.15);
+  transform: translateY(-1px);
+}
+
+.btn-upload-submit:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

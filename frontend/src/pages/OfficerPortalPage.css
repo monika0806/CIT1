@@ -1,0 +1,155 @@
+/* ==========================================================================
+   ROADPULSE AI — OFFICER AUDIT & LAW ENFORCEMENT PORTAL STYLES
+   ========================================================================== */
+
+.officer-card {
+  background: var(--card-bg);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-xl, 18px);
+  padding: 1.35rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  box-shadow: var(--card-shadow);
+}
+
+.officer-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.officer-search-wrap {
+  position: relative;
+  flex: 1;
+  max-width: 420px;
+}
+
+.officer-search-input {
+  width: 100%;
+  padding: 0.65rem 1rem 0.65rem 2.4rem;
+  background: var(--input-bg);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm, 6px);
+  color: var(--text-pure);
+  font-size: 0.85rem;
+  transition: all 0.2s ease;
+}
+
+.officer-search-input:focus {
+  outline: none;
+  border-color: var(--neon-cyan);
+  box-shadow: 0 0 10px rgba(0, 245, 255, 0.2);
+}
+
+.officer-search-icon {
+  position: absolute;
+  left: 0.85rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+.filter-btn-group {
+  display: flex;
+  gap: 0.4rem;
+  background: var(--chip-bg);
+  padding: 0.25rem;
+  border-radius: var(--radius-sm, 6px);
+  border: 1px solid var(--border-subtle);
+}
+
+.filter-btn {
+  background: transparent;
+  border: none;
+  padding: 0.4rem 0.85rem;
+  border-radius: 4px;
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.filter-btn.active {
+  background: var(--bg-surface-elevated, #162034);
+  color: var(--text-pure);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+}
+
+/* Table */
+.officer-table-container {
+  overflow-x: auto;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md, 10px);
+}
+
+.officer-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+}
+
+.officer-table th {
+  background: var(--chip-bg);
+  padding: 0.85rem 1rem;
+  text-align: left;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-size: 0.72rem;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.officer-table td {
+  padding: 0.85rem 1rem;
+  border-bottom: 1px solid var(--border-subtle);
+  color: var(--text-primary);
+  vertical-align: middle;
+}
+
+.officer-table tr:hover td {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.status-badge-pending {
+  background: rgba(245, 158, 11, 0.15);
+  color: var(--neon-amber);
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.status-badge-approved {
+  background: rgba(16, 185, 129, 0.15);
+  color: var(--neon-emerald);
+  border: 1px solid rgba(16, 185, 129, 0.35);
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.audit-action-btn {
+  background: rgba(0, 245, 255, 0.1);
+  color: var(--neon-cyan);
+  border: 1px solid rgba(0, 245, 255, 0.3);
+  padding: 0.35rem 0.7rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.audit-action-btn:hover {
+  background: rgba(0, 245, 255, 0.2);
+}

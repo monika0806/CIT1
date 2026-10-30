@@ -1,0 +1,172 @@
+/* ==========================================================================
+   ROADPULSE AI — GIS CONGESTION HEATMAP & SIMULATOR PAGE STYLES
+   ========================================================================== */
+
+.map-workspace-grid {
+  display: grid;
+  grid-template-columns: 2.3fr 1fr;
+  gap: 1.35rem;
+}
+
+@media (max-width: 1200px) {
+  .map-workspace-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.map-card {
+  background: var(--card-bg);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-xl, 18px);
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  box-shadow: var(--card-shadow);
+}
+
+.map-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.map-container {
+  height: 560px;
+  width: 100%;
+  border-radius: var(--radius-lg, 14px);
+  overflow: hidden;
+  border: 1px solid var(--border-subtle);
+  position: relative;
+  background: #0d131f;
+}
+
+.map-overlay-legend {
+  position: absolute;
+  bottom: 1.2rem;
+  left: 1.2rem;
+  z-index: 1000;
+  background: rgba(13, 19, 31, 0.88);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md, 10px);
+  padding: 0.75rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.legend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  box-shadow: 0 0 8px currentColor;
+}
+
+.legend-dot.green { color: #10b981; background: #10b981; }
+.legend-dot.orange { color: #f59e0b; background: #f59e0b; }
+.legend-dot.red { color: #ff0055; background: #ff0055; }
+.legend-dot.beacon { color: #00f5ff; background: #00f5ff; animation: livePulse 1.5s infinite; }
+
+/* Simulation Controls Panel */
+.sim-controls-panel {
+  background: var(--card-bg);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-xl, 18px);
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  box-shadow: var(--card-shadow);
+}
+
+.sim-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.sim-label {
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  display: flex;
+  justify-content: space-between;
+}
+
+.sim-select {
+  width: 100%;
+  padding: 0.65rem 0.9rem;
+  background: var(--input-bg);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm, 6px);
+  color: var(--text-pure);
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.sim-select:focus {
+  outline: none;
+  border-color: var(--neon-cyan);
+}
+
+.sim-slider-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.sim-slider {
+  flex: 1;
+  accent-color: var(--neon-cyan);
+  cursor: pointer;
+}
+
+.forecast-strip {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.65rem;
+}
+
+.forecast-card {
+  background: var(--chip-bg);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm, 6px);
+  padding: 0.65rem;
+  text-align: center;
+}
+
+.forecast-time {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  font-weight: 700;
+}
+
+.forecast-val {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: var(--neon-cyan);
+  margin-top: 0.15rem;
+}

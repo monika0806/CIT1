@@ -1,0 +1,231 @@
+/* ==========================================================================
+   ROADPULSE AI — CERTIFIED LEGAL RECEIPT MODAL COMPONENT STYLES
+   ========================================================================== */
+
+.receipt-modal-container {
+  max-width: 760px;
+  background: #ffffff;
+  color: #0f172a;
+  border-radius: var(--radius-xl, 18px);
+  overflow: hidden;
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.65);
+}
+
+.receipt-top-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.1rem 1.6rem;
+  border-bottom: 2px solid #e2e8f0;
+  background: #f8fafc;
+}
+
+.receipt-official-heading {
+  font-weight: 800;
+  font-size: 1.05rem;
+  color: #0f172a;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.receipt-actions {
+  display: flex;
+  gap: 0.6rem;
+}
+
+.btn-receipt-print {
+  background: #0284c7;
+  color: #ffffff;
+  border: none;
+  padding: 0.45rem 0.95rem;
+  border-radius: 6px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  transition: all 0.2s ease;
+}
+
+.btn-receipt-print:hover {
+  background: #0369a1;
+  transform: translateY(-1px);
+}
+
+.btn-receipt-close {
+  background: #e2e8f0;
+  border: none;
+  font-size: 1.3rem;
+  padding: 0.2rem 0.65rem;
+  border-radius: 6px;
+  cursor: pointer;
+  color: #475569;
+  line-height: 1;
+}
+
+.btn-receipt-close:hover {
+  background: #cbd5e1;
+  color: #0f172a;
+}
+
+.receipt-content-scroll {
+  padding: 1.6rem;
+  max-height: 75vh;
+  overflow-y: auto;
+}
+
+.receipt-hero-title {
+  text-align: center;
+  margin-bottom: 1.4rem;
+}
+
+.receipt-hero-title h2 {
+  font-size: 1.3rem;
+  font-weight: 900;
+  color: #0f172a;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.receipt-hero-title p {
+  font-size: 0.82rem;
+  color: #64748b;
+  margin-top: 0.25rem;
+}
+
+.receipt-summary-grid {
+  display: grid;
+  grid-template-columns: 1.3fr 1fr;
+  gap: 1.4rem;
+  margin-bottom: 1.4rem;
+  background: #f1f5f9;
+  padding: 1.2rem;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+}
+
+@media (max-width: 600px) {
+  .receipt-summary-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.receipt-label-tag {
+  font-size: 0.72rem;
+  color: #64748b;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.2rem;
+}
+
+.receipt-val-highlight {
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 800;
+  font-size: 1.15rem;
+  color: #0284c7;
+}
+
+.receipt-plate-box {
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 900;
+  font-size: 1.25rem;
+  color: #b91c1c;
+  background: #fee2e2;
+  padding: 0.2rem 0.6rem;
+  border-radius: 4px;
+  display: inline-block;
+  border: 1px solid #f87171;
+}
+
+.receipt-snapshot-box {
+  background: #000;
+  border-radius: 6px;
+  overflow: hidden;
+  height: 140px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #cbd5e1;
+}
+
+.receipt-snapshot-box img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.receipt-statutory-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 1.4rem;
+  font-size: 0.85rem;
+}
+
+.receipt-statutory-table th {
+  background: #e2e8f0;
+  padding: 0.65rem 0.9rem;
+  text-align: left;
+  font-size: 0.78rem;
+  font-weight: 800;
+  color: #334155;
+  border-bottom: 2px solid #cbd5e1;
+}
+
+.receipt-statutory-table td {
+  padding: 0.65rem 0.9rem;
+  border-bottom: 1px solid #e2e8f0;
+  color: #1e293b;
+}
+
+.receipt-seal-box {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #f8fafc;
+  padding: 1.2rem;
+  border: 1px dashed #cbd5e1;
+  border-radius: 8px;
+}
+
+.receipt-authority-tag {
+  font-size: 0.78rem;
+  color: #64748b;
+  line-height: 1.4;
+}
+
+.receipt-qr-stamp {
+  width: 80px;
+  height: 80px;
+  background: #e2e8f0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: #475569;
+  border-radius: 6px;
+  border: 1px solid #cbd5e1;
+}
+
+/* Print Specific Rules */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  .receipt-modal-container,
+  .receipt-modal-container * {
+    visibility: visible;
+  }
+  .receipt-modal-container {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    box-shadow: none;
+  }
+  .receipt-actions {
+    display: none !important;
+  }
+}

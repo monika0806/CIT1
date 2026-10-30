@@ -1,0 +1,108 @@
+/* ==========================================================================
+   ROADPULSE AI — LOCATION EDIT & GEO-COORDINATE MODAL STYLES
+   ========================================================================== */
+
+.location-modal-card {
+  max-width: 680px;
+  width: 92%;
+  background: var(--bg-surface-elevated, #162034);
+  border: 1px solid var(--border-strong, rgba(255, 255, 255, 0.18));
+  border-radius: var(--radius-xl, 18px);
+  overflow: hidden;
+  box-shadow: 0 25px 70px rgba(0, 0, 0, 0.75);
+}
+
+.location-form-body {
+  padding: 1.4rem 1.6rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.15rem;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+.location-field-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.location-field-label {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.location-input {
+  width: 100%;
+  padding: 0.65rem 0.95rem;
+  background: var(--input-bg, rgba(10, 14, 23, 0.85));
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm, 6px);
+  color: var(--text-pure);
+  font-size: 0.86rem;
+  font-family: inherit;
+  transition: all 0.2s ease;
+}
+
+.location-input:focus {
+  outline: none;
+  border-color: var(--neon-cyan);
+  box-shadow: 0 0 10px rgba(0, 245, 255, 0.25);
+}
+
+.location-coord-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.9rem;
+}
+
+.location-map-picker {
+  height: 200px;
+  width: 100%;
+  border-radius: var(--radius-md, 10px);
+  overflow: hidden;
+  border: 1px solid var(--border-subtle);
+  position: relative;
+}
+
+.location-gps-btn {
+  background: rgba(0, 245, 255, 0.1);
+  color: var(--neon-cyan);
+  border: 1px solid rgba(0, 245, 255, 0.3);
+  padding: 0.25rem 0.65rem;
+  border-radius: 4px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.location-gps-btn:hover {
+  background: rgba(0, 245, 255, 0.2);
+}
+
+.location-save-btn {
+  background: linear-gradient(135deg, #0284c7, #0ea5e9);
+  color: #ffffff;
+  border: none;
+  padding: 0.75rem 1.4rem;
+  border-radius: var(--radius-sm, 6px);
+  font-weight: 700;
+  font-size: 0.9rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  box-shadow: 0 4px 16px rgba(14, 165, 233, 0.35);
+  transition: all 0.2s ease;
+}
+
+.location-save-btn:hover {
+  filter: brightness(1.1);
+  transform: translateY(-1px);
+}

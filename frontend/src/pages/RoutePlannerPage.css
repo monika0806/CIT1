@@ -1,0 +1,158 @@
+/* ==========================================================================
+   ROADPULSE AI — AI CONGESTION-AWARE ROUTE PLANNER PAGE STYLES
+   ========================================================================== */
+
+.route-planner-grid {
+  display: grid;
+  grid-template-columns: 1.15fr 1.85fr;
+  gap: 1.35rem;
+}
+
+@media (max-width: 1100px) {
+  .route-planner-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.route-inputs-card {
+  background: var(--card-bg);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-xl, 18px);
+  padding: 1.35rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  box-shadow: var(--card-shadow);
+}
+
+.route-select-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.route-node-select {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  background: var(--input-bg);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm, 6px);
+  color: var(--text-pure);
+  font-size: 0.86rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.route-node-select:focus {
+  outline: none;
+  border-color: var(--neon-cyan);
+  box-shadow: 0 0 12px rgba(0, 245, 255, 0.25);
+}
+
+.route-results-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.route-option-card {
+  background: var(--chip-bg);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md, 10px);
+  padding: 1rem 1.15rem;
+  cursor: pointer;
+  transition: all 0.25s var(--ease-spring);
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.route-option-card:hover {
+  border-color: var(--border-strong);
+  transform: translateY(-1px);
+}
+
+.route-option-card.active {
+  background: rgba(0, 245, 255, 0.08);
+  border-color: var(--neon-cyan);
+  box-shadow: 0 0 20px rgba(0, 245, 255, 0.15);
+}
+
+.route-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.route-title {
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: var(--text-pure);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.route-metrics-badge {
+  display: flex;
+  gap: 0.65rem;
+  font-size: 0.76rem;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.metric-pill {
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  background: var(--chip-bg);
+  border: 1px solid var(--border-subtle);
+}
+
+.savings-badge {
+  background: rgba(16, 185, 129, 0.15);
+  color: var(--neon-emerald);
+  border: 1px solid rgba(16, 185, 129, 0.4);
+  padding: 0.35rem 0.75rem;
+  border-radius: var(--radius-sm, 6px);
+  font-size: 0.78rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.turn-directions-box {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  max-height: 280px;
+  overflow-y: auto;
+  padding-right: 0.3rem;
+}
+
+.direction-step {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+  font-size: 0.8rem;
+  color: var(--text-primary);
+  padding: 0.45rem 0;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.step-num {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: rgba(0, 245, 255, 0.15);
+  color: var(--neon-cyan);
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 700;
+  font-size: 0.72rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
