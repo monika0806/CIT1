@@ -254,55 +254,24 @@ def create_deck():
     ], "Life-Saving Transit", ACCENT_EMERALD)
 
     # -------------------------------------------------------------
-    # SLIDE 4: SYSTEM ARCHITECTURE
+    # SLIDE 4: SYSTEM ARCHITECTURE (VISUAL DIAGRAM)
     # -------------------------------------------------------------
     slide4 = prs.slides.add_slide(blank_layout)
     apply_background(slide4)
-    add_header(slide4, "SYSTEM ARCHITECTURE", "Four-Tier Cyber-Physical Modular Architecture")
+    add_header(slide4, "SYSTEM ARCHITECTURE", "End-to-End Modular 4-Tier Architecture")
 
-    # 4 Architecture Columns
-    w4 = Inches(2.7)
-    h4 = Inches(5.1)
-    
-    add_card(slide4, Inches(0.8), Inches(1.65), w4, h4, "TIER 1: INGESTION", [
-        "CCTV Surveillance Cameras",
-        "RTSP Live Camera Feeds",
-        "Video Upload MP4/AVI",
-        "Live Camera GIS Beacons",
-        "Municipal Sensor Nodes",
-        "High-Frame OpenCV Buffer",
-        "Multi-threading Decoder"
-    ], "Sensor Layer", ACCENT_CYAN)
+    img_path = "/Users/monika/Desktop/CIT1/docs/system_architecture_diagram.jpg"
+    if os.path.exists(img_path):
+        slide4.shapes.add_picture(img_path, Inches(1.15), Inches(1.6), Inches(11.03), Inches(5.35))
+    else:
+        # Fallback 4 Columns
+        w4 = Inches(2.7)
+        h4 = Inches(5.1)
+        add_card(slide4, Inches(0.8), Inches(1.65), w4, h4, "TIER 1: INGESTION", [
+            "CCTV Surveillance Cameras", "RTSP Live Feeds", "GIS Beacons"
+        ], "Sensor Layer", ACCENT_CYAN)
 
-    add_card(slide4, Inches(3.75), Inches(1.65), w4, h4, "TIER 2: AI INFERENCE", [
-        "YOLOv8 Real-Time Detection",
-        "DeepSORT Tracking Filter",
-        "Centroid Vector Calculator",
-        "Wrong-Way Displacement Analyzer",
-        "Ambient Lumens Perception",
-        "Heuristic Dijkstra Router",
-        "Green Wave Preemption Logic"
-    ], "Inference Engine", ACCENT_EMERALD)
 
-    add_card(slide4, Inches(6.7), Inches(1.65), w4, h4, "TIER 3: BACKEND & DB", [
-        "Flask 3.0 RESTful Core",
-        "Gunicorn Production Server",
-        "SQLite Relational Database",
-        "E-Challan State Controller",
-        "Auth Token Validator (RBAC)",
-        "Pink Patrol Dispatch Manager",
-        "GIS City Simulator State"
-    ], "Controller Layer", ACCENT_AMBER)
-
-    add_card(slide4, Inches(9.65), Inches(1.65), w4, h4, "TIER 4: COMMAND HUD", [
-        "React 18 SPA Command Center",
-        "Leaflet.js Dynamic GIS Canvas",
-        "Cyberpunk HUD Dark Aesthetics",
-        "AudioContext Alert Synthesizer",
-        "Officer Portal (Police Login)",
-        "Citizen Challan Portal & Pay",
-        "Emergency Driver Console"
-    ], "Presentation Layer", ACCENT_PURPLE)
 
     # -------------------------------------------------------------
     # SLIDE 5: AI & COMPUTER VISION MODELS
