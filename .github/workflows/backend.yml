@@ -1,3 +1,4 @@
+
 name: Backend CI
 
 on:
@@ -6,16 +7,13 @@ on:
       - "core/**"
       - "database/**"
       - "web/**"
-      - "run.py"
-      - "requirement.txt"
       - ".github/workflows/backend.yml"
+
   pull_request:
     paths:
       - "core/**"
       - "database/**"
       - "web/**"
-      - "run.py"
-      - "requirement.txt"
       - ".github/workflows/backend.yml"
 
 permissions:
@@ -29,6 +27,7 @@ jobs:
   backend:
     name: Check Python syntax
     runs-on: ubuntu-latest
+
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
@@ -39,4 +38,4 @@ jobs:
           python-version: "3.11"
 
       - name: Compile backend modules
-        run: python -m compileall -q core database web run.py
+        run: python -m compileall -q core database web
