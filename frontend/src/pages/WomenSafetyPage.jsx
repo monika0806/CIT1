@@ -33,6 +33,8 @@ export default function WomenSafetyPage() {
   const mapContainerRef = useRef(null);
   const mapInstanceRef = useRef(null);
   const markersLayerRef = useRef(null);
+  const baseLayersRef = useRef({});
+  const [basemap, setBasemap] = useState('dark');
 
   // -------------------------------------------------------------
   // API: Fetch Tumakuru Streets Simulation
@@ -97,15 +99,51 @@ export default function WomenSafetyPage() {
         attributionControl: false
       });
 
-      L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-        maxZoom: 19,
-        subdomains: 'abcd'
-      }).addTo(map);
+      // 100% Free & Open High-Performance Basemaps (ZERO API KEY REQUIRED, ZERO WATERMARK)
+      const baseLayers = {
+        dark: L.layerGroup([
+          L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}', {
+            maxZoom: 16,
+            attribution: 'Esri Canvas'
+          }),
+          L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}', {
+            maxZoom: 16
+          })
+        ]),
+        osm: L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          maxZoom: 19,
+          attribution: 'OpenStreetMap'
+        }),
+        satellite: L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+          maxZoom: 19,
+          attribution: 'Esri Satellite'
+        })
+      };
+
+      baseLayers.dark.addTo(map);
+      baseLayersRef.current = baseLayers;
 
       markersLayerRef.current = L.layerGroup().addTo(map);
       mapInstanceRef.current = map;
     }
   }, []);
+
+  const handleBasemapChange = (type) => {
+    setBasemap(type);
+    const map = mapInstanceRef.current;
+    const baseLayers = baseLayersRef.current;
+    if (!map || !baseLayers) return;
+
+    Object.values(baseLayers).forEach(layer => {
+      if (map.hasLayer(layer)) {
+        map.removeLayer(layer);
+      }
+    });
+
+    if (baseLayers[type]) {
+      baseLayers[type].addTo(map);
+    }
+  };
 
   // Sync Markers when simulationData changes
   useEffect(() => {
@@ -490,10 +528,34 @@ export default function WomenSafetyPage() {
               Pulsing markers represent real-time simulated risk rate across 12 corridors. Click any pin to focus and view telemetry.
             </span>
           </div>
-          <div className="map-legend">
-            <span className="legend-chip"><span className="legend-dot red"></span> High Risk (≥50%)</span>
-            <span className="legend-chip"><span className="legend-dot yellow"></span> Moderate Risk (25-49%)</span>
-            <span className="legend-chip"><span className="legend-dot green"></span> Safe (&lt;25%)</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+            <div className="map-legend">
+              <span className="legend-chip"><span className="legend-dot red"></span> High Risk (≥50%)</span>
+              <span className="legend-chip"><span className="legend-dot yellow"></span> Moderate Risk (25-49%)</span>
+              <span className="legend-chip"><span className="legend-dot green"></span> Safe (&lt;25%)</span>
+            </div>
+
+            {/* Free Basemap Switcher (Zero API Key) */}
+            <div className="speed-toggle" style={{ marginLeft: 'auto' }}>
+              <button 
+                className={`speed-pill ${basemap === 'dark' ? 'active' : ''}`}
+                onClick={() => handleBasemapChange('dark')}
+              >
+                Dark Cyber
+              </button>
+              <button 
+                className={`speed-pill ${basemap === 'osm' ? 'active' : ''}`}
+                onClick={() => handleBasemapChange('osm')}
+              >
+                OpenStreetMap
+              </button>
+              <button 
+                className={`speed-pill ${basemap === 'satellite' ? 'active' : ''}`}
+                onClick={() => handleBasemapChange('satellite')}
+              >
+                Satellite
+              </button>
+            </div>
           </div>
         </div>
 
